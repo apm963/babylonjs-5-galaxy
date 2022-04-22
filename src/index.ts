@@ -20,5 +20,9 @@ if (process.env.NODE_ENV === 'development') {
         (module as any).hot.dispose(() => {
             renderer.engine.dispose();
         });
+        
+        (module as any).hot.accept(() => {
+            // Have an empty accept cb so parcel doesn't reload the entire page
+        });
     }
 }
