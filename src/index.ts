@@ -1,4 +1,5 @@
 import { Renderer } from './Renderer';
+import { Vector3 } from '@babylonjs/core/Maths';
 
 const canvasContainer = document.getElementById('container');
 const canvas = document.getElementById('canvas') as HTMLCanvasElement ?? document.createElement('canvas');
@@ -13,16 +14,65 @@ if (document.getElementById('canvas') === null) {
 
 const renderer = new Renderer(canvas);
 
+interface HmrData {
+    defaultCamera?: {
+        target: Vector3;
+        alpha: number;
+        beta: number;
+        radius: number;
+    };
+}
+
+interface HotProps<T> {
+    data: T;
+    
+    accept: (callback: () => void) => void;
+    dispose: (callback: (ref: T) => void) => void;
+}
+
+function isHotModule<T>(value: NodeModule): asserts value is (NodeModule & { hot: HotProps<T> }) {
+    if (!('hot' in value)) {
+        throw new Error('Module is not hot');
+    }
+}
+
 // Dev-only stuff
 if (process.env.NODE_ENV === 'development') {
-    if ((module as any).hot) {
-        // Cleanly dispose of the engine instance
-        (module as any).hot.dispose(() => {
+    isHotModule<HmrData>(module);
+    
+    if (module.hot) {
+        module.hot.dispose(dataRef => {
+            
+            // Snapshot data for whatever you want to retain before HMR unload
+            const defaultCamera = renderer.defaultCamera;
+            
+            dataRef.defaultCamera = !defaultCamera ? undefined : {
+                target: defaultCamera.target,
+                alpha: defaultCamera.alpha,
+                beta: defaultCamera.beta,
+                radius: defaultCamera.radius,
+            };
+            
+            // Cleanly dispose of the engine instance
+            console.log('Unloading existing Babylon.js engine instance before creating new instance');
             renderer.engine.dispose();
         });
         
-        (module as any).hot.accept(() => {
-            // Have an empty accept cb so parcel doesn't reload the entire page
+        module.hot.accept(() => {
+            isHotModule<HmrData>(module);
+            // Extract data that was saved to dataRef within module.hot.dispose
+            const data = module.hot.data;
+            
+            // Restore camera
+            const defaultCamera = renderer.defaultCamera;
+            if (data.defaultCamera && defaultCamera !== null){
+                console.log('Restoring camera to previous position');
+                defaultCamera.target = data.defaultCamera.target;
+                defaultCamera.alpha = data.defaultCamera.alpha;
+                defaultCamera.beta = data.defaultCamera.beta;
+                defaultCamera.radius = data.defaultCamera.radius;
+            }
+            
         });
     }
 }
