@@ -156,6 +156,10 @@ export class Renderer {
 	
 	initPlanets(scene: Scene) {
 		
+		// *****************************
+		// First planet
+		// *****************************
+		
 		const sphereMat = new PBRMetallicRoughnessMaterial('sphereMat', scene);
 		sphereMat.metallic = 0.5;
 		sphereMat.roughness = 0.1;
@@ -191,13 +195,16 @@ export class Renderer {
 		var highlightLayer = new HighlightLayer("hl1", scene);
 		highlightLayer.addMesh(sphere, new Color3(0.2, 0.4, 1).scale(0.3));
 		
-		/* Second planet */
+		// *****************************
+		// Second planet
+		// *****************************
+		
 		const planet2Mat = new PBRMetallicRoughnessMaterial('planet2Mat', scene);
 		planet2Mat.metallic = 0.5;
 		planet2Mat.roughness = 0.3;
 		planet2Mat.baseColor = Color3.Teal();
 		
-		const planet2 = MeshBuilder.CreateSphere('planet2', { diameter: 2, segments: 26 }, scene);
+		const planet2 = MeshBuilder.CreateSphere('planet2', { diameter: 1.5, segments: 26 }, scene);
 		this.planets.push({
 			mesh: planet2,
 			name: 'Unradus'
@@ -207,8 +214,8 @@ export class Renderer {
 		
 		// Sphere LOD alts
 		{
-			const sphereMed = MeshBuilder.CreateSphere(`${planet2.name}Med`, { diameter: 2, segments: 8 }, scene);
-			const sphereLow = MeshBuilder.CreateSphere(`${planet2.name}Low`, { diameter: 2, segments: 3 }, scene);
+			const sphereMed = MeshBuilder.CreateSphere(`${planet2.name}Med`, { diameter: 1.5, segments: 8 }, scene);
+			const sphereLow = MeshBuilder.CreateSphere(`${planet2.name}Low`, { diameter: 1.5, segments: 3 }, scene);
 			
 			// Use the same material for these
 			sphereMed.material = planet2Mat;
@@ -223,6 +230,72 @@ export class Renderer {
 			planet2.addLODLevel(0.01, sphereMed);
 			planet2.addLODLevel(0.001, sphereLow);
 		}
+		
+		// *****************************
+		// Third planet
+		// *****************************
+		
+		const planet3Mat = new PBRMaterial('planet3Mat', scene);
+		planet3Mat.metallic = 1.0; // Set these to 1.0 to use metallic & roughness from texture
+		planet3Mat.roughness = 1.0;
+		
+		// Textures created with http://wwwtyro.github.io/procedural.js/planet1/ using seed Njg2NDM3MzE4Nzk5OQ and tweaked vals
+		// Roughness was channel corrected using this https://www.tuxpi.com/photo-effects/colorswap with config: 0% red, 100% green (negated), 100% blue
+		const planet3Textures = {
+			diffuse: new Texture((new URL('../assets/generated_planets/planet1_toxic/diffuse.png', import.meta.url)).pathname, scene),
+			normal: new Texture((new URL('../assets/generated_planets/planet1_toxic/normal.png', import.meta.url)).pathname, scene),
+			roughness: new Texture((new URL('../assets/generated_planets/planet1_toxic/roughness_channel_corrected.jpg', import.meta.url)).pathname, scene),
+			cloudsDiffuse: new Texture((new URL('../assets/generated_planets/planet1_toxic/clouds.png', import.meta.url)).pathname, scene),
+		};
+		planet3Mat.albedoTexture = planet3Textures.diffuse;
+		planet3Mat.bumpTexture = planet3Textures.normal;
+		planet3Mat.metallicTexture = planet3Textures.roughness;
+		planet3Mat.useMetallnessFromMetallicTextureBlue = true;
+		planet3Mat.useRoughnessFromMetallicTextureGreen = false; // Normally we'd set this to true and Alpha to false but I don't want this super shiny so here we are.
+		planet3Mat.useRoughnessFromMetallicTextureAlpha = true;
+		
+		const planet3 = MeshBuilder.CreateSphere('planet3', { diameter: 3.5, segments: 26 }, scene);
+		this.planets.push({
+			mesh: planet3,
+			name: 'Lyke GS'
+		});
+		planet3.position.addInPlace(new Vector3(-20, 20, 100));
+		planet3.rotation.addInPlace(new Vector3(0, 0, Math.PI * 0.12));
+		planet3.material = planet3Mat;
+		
+		// Sphere LOD alts
+		{
+			const sphereMed = MeshBuilder.CreateSphere(`${planet3.name}Med`, { diameter: 3, segments: 8 }, scene);
+			const sphereLow = MeshBuilder.CreateSphere(`${planet3.name}Low`, { diameter: 3, segments: 3 }, scene);
+			
+			// Use the same material for these
+			sphereMed.material = planet3Mat;
+			sphereLow.material = planet3Mat;
+			
+			// This is just for organization in the inspector
+			sphereMed.parent = planet3;
+			sphereLow.parent = planet3;
+			
+			// Attach the various LODs to the main mesh
+			planet3.useLODScreenCoverage = true;
+			planet3.addLODLevel(0.01, sphereMed);
+			planet3.addLODLevel(0.001, sphereLow);
+		}
+		
+		// Clouds
+		{
+			const cloudHeightPerc = 0.05;
+			const planet3CloudsMesh = MeshBuilder.CreateSphere('planet3Clouds', { diameter: 3.5 + (cloudHeightPerc * 3.5), segments: 26 / 2 }, scene);
+			planet3CloudsMesh.parent = planet3;
+			planet3CloudsMesh.isPickable = false;
+			
+			const planet3CloudsMat = new PBRMaterial('planet3CloudsMat', scene);
+			planet3CloudsMat.opacityTexture = planet3Textures.cloudsDiffuse;
+			planet3CloudsMat.metallic = 0.0;
+			planet3CloudsMat.roughness = 1.0;
+			planet3CloudsMesh.material = planet3CloudsMat;
+		}
+		
 	}
 	
 	initGuiWip() {
