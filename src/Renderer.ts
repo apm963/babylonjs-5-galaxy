@@ -145,6 +145,9 @@ export class Renderer {
 		this.initGuiWip();
 		Renderer.initJumpToCameraPosition(scene, this.defaultCamera, 1);
 		
+		// Set up collisions on meshes
+		this.planets.forEach(planet => planet.mesh.checkCollisions = true);
+		
 		// Show inspector on dev
 		if (process.env.NODE_ENV === 'development') {
 			scene.debugLayer.show({
