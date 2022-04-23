@@ -69,7 +69,7 @@ export class Renderer {
 	defaultCamera: null | ArcRotateCamera = null;
 	planets: PlanetMeta[] = [];
 	
-	onTickCallbacks: (() => void)[] = [];
+	onTickCallbacks: ((delta: number, animationRatio: number) => void)[] = [];
 	
 	constructor(public canvasEl: HTMLCanvasElement) {
 		
@@ -83,8 +83,12 @@ export class Renderer {
 		
 		// Start render loop
 		this.engine.runRenderLoop(() => {
+			// Get numbers
+			const delta = this.engine.getDeltaTime();
+			const animationRatio = scene.getAnimationRatio();
+			
 			// Run callbacks
-			this.onTickCallbacks.forEach(onTickCallback => onTickCallback());
+			this.onTickCallbacks.forEach(onTickCallback => onTickCallback(delta, animationRatio));
 			
 			// Render the scene
 			scene.render();
@@ -294,6 +298,11 @@ export class Renderer {
 			planet3CloudsMat.metallic = 0.0;
 			planet3CloudsMat.roughness = 1.0;
 			planet3CloudsMesh.material = planet3CloudsMat;
+			
+			// Rotate the cloud cover slowly
+			const cloudRotationSpeed = 0.001;
+			this.onTickCallbacks.push((_delta, animationRatio) =>
+				planet3CloudsMesh.rotate(new Vector3(0, 1, 0), cloudRotationSpeed * animationRatio));
 		}
 		
 	}
