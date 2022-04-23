@@ -45,6 +45,24 @@ interface PlanetMeta {
 	name: string;
 }
 
+interface PlanetLabelOpts {
+	fontSize: number;
+	rect1Width: number;
+	rect1Height: number;
+	linkOffsetY: number;
+	opacityDistanceControl: { start: number; end: number; };
+	sizeDistanceControl: { start: number; end: number; };
+}
+
+const defaultPlanetLabelOpts: PlanetLabelOpts = {
+	fontSize: 24,
+	rect1Width: 140,
+	rect1Height: 40,
+	linkOffsetY: 170,
+	opacityDistanceControl: { start: 40, end: 60 },
+	sizeDistanceControl: { start: 0, end: 80 },
+};
+
 export class Renderer {
 	
 	engine: Engine;
@@ -216,12 +234,14 @@ export class Renderer {
 		
 	}
 	
-	initPlanetLabel(advancedTexture: AdvancedDynamicTexture, planetMesh: AbstractMesh, planetName: string) {
+	initPlanetLabel(advancedTexture: AdvancedDynamicTexture, planetMesh: AbstractMesh, planetName: string, opts?: Partial<PlanetLabelOpts>) {
 		
-		const fontSize = 24;
-		const rect1Width = 140;
-		const rect1Height = 40;
-		const linkOffsetY = 170;
+		const fontSize = opts?.fontSize ?? defaultPlanetLabelOpts.fontSize;
+		const rect1Width = opts?.rect1Width ?? defaultPlanetLabelOpts.rect1Width;
+		const rect1Height = opts?.rect1Height ?? defaultPlanetLabelOpts.rect1Height;
+		const linkOffsetY = opts?.linkOffsetY ?? defaultPlanetLabelOpts.linkOffsetY;
+		const opacityDistanceControl = opts?.opacityDistanceControl ?? defaultPlanetLabelOpts.opacityDistanceControl;
+		const sizeDistanceControl = opts?.sizeDistanceControl ?? defaultPlanetLabelOpts.sizeDistanceControl;
 		
 		const labelText = new TextBlock(`planetText_${planetName}`);
 		labelText.text = planetName;
@@ -293,13 +313,13 @@ export class Renderer {
 			
 			const distance = Vector3.Distance(this.defaultCamera?.position, planetMesh.position);
 			
-			const opacityPerc = Renderer.getDistanceRangePercentage(40, 60, distance);
+			const opacityPerc = Renderer.getDistanceRangePercentage(opacityDistanceControl.start, opacityDistanceControl.end, distance);
 			const opacity = 1 - opacityPerc;
 			
 			labelRect.alpha = opacity;
 			line.alpha = opacity;
 			
-			const sizePerc = Renderer.getDistanceRangePercentage(0, 80, distance);
+			const sizePerc = Renderer.getDistanceRangePercentage(sizeDistanceControl.start, sizeDistanceControl.end, distance);
 			const newSize = new Vector2(
 				rect1Width - (sizePerc * rect1Width),
 				rect1Height - (sizePerc * rect1Height)
