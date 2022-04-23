@@ -223,29 +223,29 @@ export class Renderer {
 		const rect1Height = 40;
 		const linkOffsetY = 170;
 		
-		const text = new TextBlock('planetText');
-		text.text = planetName;
-		text.color = 'white';
-		text.fontSize = fontSize;
-		text.fontFamily = 'Open Sans';
+		const labelText = new TextBlock(`planetText_${planetName}`);
+		labelText.text = planetName;
+		labelText.color = 'white';
+		labelText.fontSize = fontSize;
+		labelText.fontFamily = 'Open Sans';
 		
-		const rect1 = new Rectangle();
-		rect1.width = `${rect1Width}px`;
-		rect1.height = `${rect1Height}px`;
-		rect1.addControl(text);
+		const labelRect = new Rectangle(`labelRect_${planetName}`);
+		labelRect.width = `${rect1Width}px`;
+		labelRect.height = `${rect1Height}px`;
+		labelRect.addControl(labelText);
 		
-		const line = new MultiLine('line');
+		const line = new MultiLine(`line_${planetName}`);
 		line.lineWidth = 3;
 		// line.dash = [5, 10];
 		line.color = 'white';
 		line.zIndex = 1;
 		
 		// Draw UI elements to the screen
-		advancedTexture.addControl(rect1).addControl(line);
+		advancedTexture.addControl(labelRect).addControl(line);
 		
-		const foo = new Control();
-		rect1.addControl(foo);
-		foo.top = `${(rect1Height / 2) - rect1Height}px`;
+		const labelControl = new Control(`labelControl_${planetName}`);
+		labelRect.addControl(labelControl);
+		labelControl.top = `${(rect1Height / 2) - rect1Height}px`;
 		
 		/*
 		const ref = CreateRef();
@@ -280,10 +280,10 @@ export class Renderer {
 		// Link together
 		line.reset();
 		line.add(planetMesh);
-		line.add(foo);
+		line.add(labelControl);
 		
-		rect1.linkWithMesh(planetMesh);
-		rect1.linkOffsetY = `${linkOffsetY}px`;
+		labelRect.linkWithMesh(planetMesh);
+		labelRect.linkOffsetY = `${linkOffsetY}px`;
 		
 		this.onTickCallbacks.push(() => {
 			
@@ -296,7 +296,7 @@ export class Renderer {
 			const opacityPerc = Renderer.getDistanceRangePercentage(40, 60, distance);
 			const opacity = 1 - opacityPerc;
 			
-			rect1.alpha = opacity;
+			labelRect.alpha = opacity;
 			line.alpha = opacity;
 			
 			const sizePerc = Renderer.getDistanceRangePercentage(0, 80, distance);
@@ -305,12 +305,12 @@ export class Renderer {
 				rect1Height - (sizePerc * rect1Height)
 			);
 			
-			text.fontSize = fontSize - (sizePerc * fontSize);
-			rect1.width = `${newSize.x}px`;
-			rect1.height = `${newSize.y}px`;
-			foo.top = `${(newSize.y / 2) - newSize.y}px`;
+			labelText.fontSize = fontSize - (sizePerc * fontSize);
+			labelRect.width = `${newSize.x}px`;
+			labelRect.height = `${newSize.y}px`;
+			labelControl.top = `${(newSize.y / 2) - newSize.y}px`;
 			
-			rect1.linkOffsetY = `${linkOffsetY - (sizePerc * linkOffsetY)}px`;
+			labelRect.linkOffsetY = `${linkOffsetY - (sizePerc * linkOffsetY)}px`;
 			
 		});
 		
