@@ -12,6 +12,7 @@ import {
 	MeshBuilder,
 	PBRMaterial,
 	PBRMetallicRoughnessMaterial,
+	PointLight,
 	QuinticEase,
 	Scene,
 	StandardMaterial,
@@ -68,6 +69,7 @@ export class Renderer {
 	engine: Engine;
 	defaultCamera: null | ArcRotateCamera = null;
 	planets: PlanetMeta[] = [];
+	sunLight: null | PointLight = null;
 	
 	onTickCallbacks: ((delta: number, animationRatio: number) => void)[] = [];
 	
@@ -123,6 +125,11 @@ export class Renderer {
 		hdrEnvironmentTexture.level = 2;
 		scene.environmentTexture = hdrEnvironmentTexture;
 		
+		// Add light (sun)
+		const sunLight = new PointLight("pointLight", new Vector3(50, 50, -10), scene);
+		sunLight.intensity = 50000;
+		this.sunLight = sunLight;
+		
 		// Skybox
 		const skybox = MeshBuilder.CreateBox("skyBox", { size: 9000.0 }, scene);
 		skybox.infiniteDistance = true;
@@ -162,6 +169,21 @@ export class Renderer {
 	}
 	
 	initPlanets(scene: Scene) {
+		
+		// *****************************
+		// Sun
+		// *****************************
+		
+		const sunMat = new StandardMaterial('sunMat', scene);
+		sunMat.emissiveColor = Color3.Yellow();
+		
+		const sun = MeshBuilder.CreateSphere('sun', { diameter: 2, segments: 3 }, scene);
+		this.planets.push({
+			mesh: sun,
+			name: 'Sun'
+		});
+		sun.material = sunMat;
+		sun.parent = this.sunLight;
 		
 		// *****************************
 		// First planet
