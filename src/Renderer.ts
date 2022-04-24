@@ -86,7 +86,7 @@ export class Renderer {
 	
 	engine: Engine;
 	defaultCamera: null | ArcRotateCamera = null;
-	planets: PlanetMeta[] = [];
+	solarBodies: PlanetMeta[] = [];
 	sunLight: null | PointLight = null;
 	
 	onTickCallbacks: ((delta: number, animationRatio: number) => void)[] = [];
@@ -171,7 +171,7 @@ export class Renderer {
 		Renderer.initJumpToCameraPosition(scene, this.defaultCamera, 1);
 		
 		// Set up collisions on meshes
-		this.planets.forEach(planet => planet.mesh.checkCollisions = true);
+		this.solarBodies.forEach(solarBody => solarBody.mesh.checkCollisions = true);
 		
 		// Show inspector on dev
 		if (process.env.NODE_ENV === 'development') {
@@ -334,7 +334,7 @@ export class Renderer {
 				scene
 			);
 			
-			this.planets.push({
+			this.solarBodies.push({
 				mesh: sphereMesh,
 				type: solarBodyConfig.type,
 				name: solarBodyConfig.friendlyName,
@@ -385,7 +385,9 @@ export class Renderer {
 		// Create 2D GUI manager
 		const advancedTexture = AdvancedDynamicTexture.CreateFullscreenUI('UI'); // 2D GUI (fullscreen)
 		
-		this.planets.forEach(planetMeta => this.initPlanetLabel(advancedTexture, planetMeta.mesh, planetMeta.name));
+		this.solarBodies
+			.filter(solarBody => solarBody.type === 'planet')
+			.forEach(solarBody => this.initPlanetLabel(advancedTexture, solarBody.mesh, solarBody.name));
 		
 	}
 	
