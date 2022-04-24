@@ -4,6 +4,7 @@ import {
 	Animation,
 	ArcRotateCamera,
 	Camera,
+	CircleEase,
 	Color3,
 	CubeTexture,
 	DefaultRenderingPipeline,
@@ -19,6 +20,7 @@ import {
 	PointLight,
 	QuinticEase,
 	Scene,
+	SineEase,
 	StandardMaterial,
 	Texture,
 	TransformNode,
@@ -535,8 +537,11 @@ export class Renderer {
 	 */
 	registerGalaxyScaling(camera: ArcRotateCamera, solarSystemTransformNode: TransformNode) {
 		
-		const easingFunction = new QuinticEase();
-		easingFunction.setEasingMode(EasingFunction.EASINGMODE_EASEOUT);
+		// const easingFunction = new SineEase();
+		// easingFunction.setEasingMode(EasingFunction.EASINGMODE_EASEIN);
+		
+		const easingFunction = new CircleEase();
+		easingFunction.setEasingMode(EasingFunction.EASINGMODE_EASEIN);
 		
 		const scaleDistanceControl = {
 			start: 100,
