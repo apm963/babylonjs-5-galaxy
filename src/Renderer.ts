@@ -177,7 +177,7 @@ export class Renderer {
 		this.initPlanets(scene, solarSystemTransformNode);
 		this.initGuiWip();
 		this.registerGalaxyScaling(camera, solarSystemTransformNode);
-		Renderer.initJumpToCameraPosition(scene, this.defaultCamera, 1);
+		Renderer.initJumpToCameraPosition(scene, this.defaultCamera, solarSystemTransformNode, 1);
 		
 		// Set up collisions on meshes
 		this.solarBodies.forEach(solarBody => solarBody.mesh.checkCollisions = true);
@@ -548,7 +548,7 @@ export class Renderer {
 			min: 0.1,
 		};
 		const scaleRange = scaleAmount.max - scaleAmount.min;
-		const scaleVector = new Vector3(1, 1, 1);
+		const scaleVector = Vector3.One();
 		
 		this.onTickCallbacks.push(() => {
 			
@@ -563,7 +563,7 @@ export class Renderer {
 		});
 	}
 	
-	static initJumpToCameraPosition(scene: Scene, camera: ArcRotateCamera, animationDurationSeconds: number = 1) {
+	static initJumpToCameraPosition(scene: Scene, camera: ArcRotateCamera, solarSystemTransformNode: TransformNode, animationDurationSeconds: number = 1) {
 		
 		scene.onPointerDown = (e, pickingInfo) => {
 			
@@ -598,6 +598,12 @@ export class Renderer {
 			
 			Animation.CreateAndStartAnimation('cameraMove3', camera, 'alpha', targetFps, animationDurationSeconds * targetFps, camera.alpha, origAlpha, Animation.ANIMATIONLOOPMODE_RELATIVE);
 			Animation.CreateAndStartAnimation('cameraMove4', camera, 'beta', targetFps, animationDurationSeconds * targetFps, camera.beta, origBeta, Animation.ANIMATIONLOOPMODE_RELATIVE);
+			
+			// Set the pivot point of the transform node to the selected point so the galaxy scaling trick looks correct
+			// But only set this if we are not already in galaxy space
+			if (solarSystemTransformNode.scaling.equalsWithEpsilon(Vector3.One(), 0.01)) {
+				solarSystemTransformNode.setPivotPoint(point);
+			}
 			
 		};
 		
