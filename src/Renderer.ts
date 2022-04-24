@@ -129,7 +129,7 @@ export class Renderer {
 		camera.lowerRadiusLimit = 3;
 		
 		// Enable camera collisions
-		const cameraCollisionRadius = 1.0;
+		const cameraCollisionRadius = 2.0;
 		camera.collisionRadius = new Vector3(cameraCollisionRadius, cameraCollisionRadius, cameraCollisionRadius);
 		camera.checkCollisions = true;
 		
