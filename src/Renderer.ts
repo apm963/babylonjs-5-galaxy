@@ -554,7 +554,8 @@ export class Renderer {
 			const origAlpha = camera.alpha;
 			const origBeta = camera.beta;
 			
-			const targetFps = 240; // TODO: Make this dynamic
+			const animationRatio = scene.getAnimationRatio();
+			const targetFps = 60 * animationRatio;
 			const easingFunction = new QuinticEase();
 			easingFunction.setEasingMode(EasingFunction.EASINGMODE_EASEOUT);
 			
