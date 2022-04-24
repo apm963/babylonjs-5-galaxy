@@ -211,11 +211,12 @@ export class Renderer {
 				type: 'star',
 				inspectorName: 'sun',
 				friendlyName: 'Sun',
-				baseConfig: {diameter: 8, segments: 8},
+				baseConfig: {diameter: 8, segments: 26},
 				lodConfig: {
 					useLODScreenCoverage: true,
 					levels: [
-						{level: 0.01, segments: 3},
+						{level: 0.01, segments: 8},
+						{level: 0.001, segments: 3},
 					],
 				},
 				material: (() => {
