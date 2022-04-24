@@ -222,9 +222,14 @@ export class Renderer {
 				material: (() => {
 					const mat = new StandardMaterial('tempMat', scene);
 					mat.emissiveColor = Color3.FromHexString('#FFD8A3');
+					mat.disableLighting = true; // This is fully emissive so no need for lighting
 					return mat;
 				})(),
 				parent: this.sunLight,
+				postCreateCb: meshes => {
+					const allMeshes = [meshes.main, ...meshes.lods];
+					allMeshes.forEach(mesh => highlightLayer.addMesh(mesh, Color3.Yellow().scale(0.3)));
+				},
 			},
 			{
 				type: 'planet',
