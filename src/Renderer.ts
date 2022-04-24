@@ -9,7 +9,10 @@ import {
 	Engine,
 	EquiRectangularCubeTexture,
 	HighlightLayer,
+	Material,
+	Mesh,
 	MeshBuilder,
+	Node,
 	PBRMaterial,
 	PBRMetallicRoughnessMaterial,
 	PointLight,
@@ -41,8 +44,23 @@ import "@babylonjs/core/Materials/Textures/Loaders";
 // Other imports
 import "./polyfills";
 
+interface SolarBodyConfig {
+	type: PlanetMeta['type'];
+	inspectorName: string;
+	friendlyName: string;
+	baseConfig: {diameter: number, segments: number};
+	lodConfig?: {
+		useLODScreenCoverage?: boolean;
+		levels: {level: number, segments: number}[];
+	};
+	material: Material;
+	parent?: null | Node;
+	postCreateCb?: (mesh: Mesh, solarBodyConfig: SolarBodyConfig) => void;
+}
+
 interface PlanetMeta {
 	mesh: AbstractMesh;
+	type: 'star' | 'planet';
 	name: string;
 }
 
@@ -170,166 +188,195 @@ export class Renderer {
 	
 	initPlanets(scene: Scene) {
 		
-		// *****************************
-		// Sun
-		// *****************************
+		const highlightLayer = new HighlightLayer("hl1", scene);
 		
-		const sunMat = new StandardMaterial('sunMat', scene);
-		sunMat.emissiveColor = Color3.Yellow();
+		const solarBodyConfigs: SolarBodyConfig[] = [
+			{
+				type: 'star',
+				inspectorName: 'sun',
+				friendlyName: 'Sun',
+				baseConfig: {diameter: 8, segments: 8},
+				lodConfig: {
+					useLODScreenCoverage: true,
+					levels: [
+						{level: 0.01, segments: 3},
+					],
+				},
+				material: (() => {
+					const mat = new StandardMaterial('tempMat', scene);
+					mat.emissiveColor = Color3.Yellow();
+					return mat;
+				})(),
+				parent: this.sunLight,
+			},
+			{
+				type: 'planet',
+				inspectorName: 'planet1',
+				friendlyName: 'Penuaturn', // https://www.fantasynamegenerators.com/planet_names.php
+				baseConfig: {diameter: 2, segments: 26},
+				lodConfig: {
+					useLODScreenCoverage: true,
+					levels: [
+						{level: 0.01, segments: 8},
+						{level: 0.001, segments: 3},
+					],
+				},
+				material: (() => {
+					const mat = new PBRMetallicRoughnessMaterial('tempMat', scene);
+					mat.metallic = 0.5;
+					mat.roughness = 0.1;
+					mat.baseColor = Color3.Blue();
+					return mat;
+				})(),
+				postCreateCb: mesh => {
+					highlightLayer.addMesh(mesh, new Color3(0.2, 0.4, 1).scale(0.3));
+				},
+			},
+			{
+				type: 'planet',
+				inspectorName: 'planet2',
+				friendlyName: 'Unradus',
+				baseConfig: {diameter: 1.5, segments: 26},
+				lodConfig: {
+					useLODScreenCoverage: true,
+					levels: [
+						{level: 0.01, segments: 8},
+						{level: 0.001, segments: 3},
+					],
+				},
+				material: (() => {
+					const mat = new PBRMetallicRoughnessMaterial('tempMat', scene);
+					mat.metallic = 0.5;
+					mat.roughness = 0.3;
+					mat.baseColor = Color3.Teal();
+					return mat;
+				})(),
+				postCreateCb: mesh => {
+					mesh.position.addInPlace(new Vector3(200, 0, 0));
+					// highlightLayer.addMesh(mesh, new Color3(0.2, 0.4, 1).scale(0.3));
+				},
+			},
+			{
+				type: 'planet',
+				inspectorName: 'planet3',
+				friendlyName: 'Lyke GS',
+				baseConfig: {diameter: 3.5, segments: 26},
+				lodConfig: {
+					useLODScreenCoverage: true,
+					levels: [
+						{level: 0.01, segments: 8},
+						{level: 0.001, segments: 3},
+					],
+				},
+				material: (() => {
+					const mat = new PBRMaterial('tempMat', scene);
+					mat.metallic = 1.0; // Set these to 1.0 to use metallic & roughness from texture
+					mat.roughness = 1.0;
+					
+					// Textures created with http://wwwtyro.github.io/procedural.js/planet1/ using seed Njg2NDM3MzE4Nzk5OQ and tweaked vals
+					// Other ways to generate online are listed here https://blender.stackexchange.com/questions/31424/planet-texture-generator
+					// Roughness was channel corrected using this https://www.tuxpi.com/photo-effects/colorswap with config: 0% red, 100% green (negated), 100% blue
+					const planet3Textures = {
+						diffuse: new Texture((new URL('../assets/generated_planets/planet1_toxic/diffuse.png', import.meta.url)).pathname, scene),
+						normal: new Texture((new URL('../assets/generated_planets/planet1_toxic/normal.png', import.meta.url)).pathname, scene),
+						roughness: new Texture((new URL('../assets/generated_planets/planet1_toxic/roughness_channel_corrected.jpg', import.meta.url)).pathname, scene),
+					};
+					mat.albedoTexture = planet3Textures.diffuse;
+					mat.bumpTexture = planet3Textures.normal;
+					mat.metallicTexture = planet3Textures.roughness;
+					mat.useMetallnessFromMetallicTextureBlue = true;
+					mat.useRoughnessFromMetallicTextureGreen = false; // Normally we'd set this to true and Alpha to false but I don't want this super shiny so here we are.
+					mat.useRoughnessFromMetallicTextureAlpha = true;
+					
+					return mat;
+				})(),
+				postCreateCb: (mesh, solarBodyConfig) => {
+					mesh.position.addInPlace(new Vector3(-20, 20, 100));
+					mesh.rotation.addInPlace(new Vector3(0, 0, Math.PI * 0.12));
+					// highlightLayer.addMesh(mesh, new Color3(0.2, 0.4, 1).scale(0.3));
+					
+					// Set up cloud layer
+					const cloudHeightPerc = 0.05;
+					const cloudsMesh = MeshBuilder.CreateSphere(
+						`${solarBodyConfig.inspectorName}_clouds`,
+						{
+							diameter: solarBodyConfig.baseConfig.diameter + (cloudHeightPerc * solarBodyConfig.baseConfig.diameter),
+							segments: solarBodyConfig.baseConfig.segments / 2
+						},
+						scene
+					);
+					cloudsMesh.parent = mesh;
+					cloudsMesh.isPickable = false;
+					
+					const cloudsDiffuse = new Texture((new URL('../assets/generated_planets/planet1_toxic/clouds.png', import.meta.url)).pathname, scene);
+					
+					const cloudsMat = new PBRMaterial(`${solarBodyConfig.inspectorName}_cloudsMat`, scene);
+					cloudsMat.opacityTexture = cloudsDiffuse;
+					cloudsMat.metallic = 0.0;
+					cloudsMat.roughness = 1.0;
+					cloudsMesh.material = cloudsMat;
+					
+					// Rotate the cloud cover slowly
+					const cloudRotationSpeed = 0.001;
+					this.onTickCallbacks.push((_delta, animationRatio) =>
+						cloudsMesh.rotate(new Vector3(0, 1, 0), cloudRotationSpeed * animationRatio));
+					
+				},
+			},
+		];
 		
-		const sun = MeshBuilder.CreateSphere('sun', { diameter: 2, segments: 3 }, scene);
-		this.planets.push({
-			mesh: sun,
-			name: 'Sun'
+		// Build solar bodies
+		solarBodyConfigs.forEach(solarBodyConfig => {
+			
+			const sphereMesh = MeshBuilder.CreateSphere(
+				solarBodyConfig.inspectorName,
+				{ diameter: solarBodyConfig.baseConfig.diameter, segments: solarBodyConfig.baseConfig.segments },
+				scene
+			);
+			
+			this.planets.push({
+				mesh: sphereMesh,
+				type: solarBodyConfig.type,
+				name: solarBodyConfig.friendlyName,
+			});
+			
+			sphereMesh.material = solarBodyConfig.material;
+			sphereMesh.material.name = `${solarBodyConfig.inspectorName}Mat`;
+			
+			if (solarBodyConfig.parent) {
+				sphereMesh.parent = solarBodyConfig.parent;
+			}
+			
+			// Set up LOD alts
+			if (solarBodyConfig.lodConfig) {
+				
+				sphereMesh.useLODScreenCoverage = solarBodyConfig.lodConfig.useLODScreenCoverage === true;
+				
+				solarBodyConfig.lodConfig.levels.forEach(lodLevelConfig => {
+					
+					const lodSphereMesh = MeshBuilder.CreateSphere(
+						`${solarBodyConfig.inspectorName}_lod_${lodLevelConfig.level}`,
+						{ diameter: solarBodyConfig.baseConfig.diameter, segments: lodLevelConfig.segments },
+						scene
+					);
+					
+					// Use the same material for these
+					lodSphereMesh.material = solarBodyConfig.material;
+					
+					// Set parent to inherit positioning and such
+					lodSphereMesh.parent = sphereMesh;
+					
+					// Attach the various LODs to the main mesh
+					sphereMesh.addLODLevel(0.01, lodSphereMesh);
+					
+				});
+				
+			}
+			
+			// Run custom code
+			solarBodyConfig.postCreateCb && solarBodyConfig.postCreateCb(sphereMesh, solarBodyConfig);
+			
 		});
-		sun.material = sunMat;
-		sun.parent = this.sunLight;
-		
-		// *****************************
-		// First planet
-		// *****************************
-		
-		const sphereMat = new PBRMetallicRoughnessMaterial('sphereMat', scene);
-		sphereMat.metallic = 0.5;
-		sphereMat.roughness = 0.1;
-		sphereMat.baseColor = Color3.Blue();
-		
-		const sphere = MeshBuilder.CreateSphere('sphere', { diameter: 2, segments: 26 }, scene);
-		this.planets.push({
-			mesh: sphere,
-			name: 'Penuaturn' // https://www.fantasynamegenerators.com/planet_names.php
-		});
-		sphere.material = sphereMat;
-		
-		// Sphere LOD alts
-		{
-			const sphereMed = MeshBuilder.CreateSphere(`${sphere.name}Med`, { diameter: 2, segments: 8 }, scene);
-			const sphereLow = MeshBuilder.CreateSphere(`${sphere.name}Low`, { diameter: 2, segments: 3 }, scene);
-			
-			// Use the same material for these
-			sphereMed.material = sphereMat;
-			sphereLow.material = sphereMat;
-			
-			// This is just for organization in the inspector
-			sphereMed.parent = sphere;
-			sphereLow.parent = sphere;
-			
-			// Attach the various LODs to the main mesh
-			sphere.useLODScreenCoverage = true;
-			sphere.addLODLevel(0.01, sphereMed);
-			sphere.addLODLevel(0.001, sphereLow);
-		}
-		
-		// Create atmosphere with glow layer
-		var highlightLayer = new HighlightLayer("hl1", scene);
-		highlightLayer.addMesh(sphere, new Color3(0.2, 0.4, 1).scale(0.3));
-		
-		// *****************************
-		// Second planet
-		// *****************************
-		
-		const planet2Mat = new PBRMetallicRoughnessMaterial('planet2Mat', scene);
-		planet2Mat.metallic = 0.5;
-		planet2Mat.roughness = 0.3;
-		planet2Mat.baseColor = Color3.Teal();
-		
-		const planet2 = MeshBuilder.CreateSphere('planet2', { diameter: 1.5, segments: 26 }, scene);
-		this.planets.push({
-			mesh: planet2,
-			name: 'Unradus'
-		});
-		planet2.position.addInPlace(new Vector3(200, 0, 0));
-		planet2.material = planet2Mat;
-		
-		// Sphere LOD alts
-		{
-			const sphereMed = MeshBuilder.CreateSphere(`${planet2.name}Med`, { diameter: 1.5, segments: 8 }, scene);
-			const sphereLow = MeshBuilder.CreateSphere(`${planet2.name}Low`, { diameter: 1.5, segments: 3 }, scene);
-			
-			// Use the same material for these
-			sphereMed.material = planet2Mat;
-			sphereLow.material = planet2Mat;
-			
-			// This is just for organization in the inspector
-			sphereMed.parent = planet2;
-			sphereLow.parent = planet2;
-			
-			// Attach the various LODs to the main mesh
-			planet2.useLODScreenCoverage = true;
-			planet2.addLODLevel(0.01, sphereMed);
-			planet2.addLODLevel(0.001, sphereLow);
-		}
-		
-		// *****************************
-		// Third planet
-		// *****************************
-		
-		const planet3Mat = new PBRMaterial('planet3Mat', scene);
-		planet3Mat.metallic = 1.0; // Set these to 1.0 to use metallic & roughness from texture
-		planet3Mat.roughness = 1.0;
-		
-		// Textures created with http://wwwtyro.github.io/procedural.js/planet1/ using seed Njg2NDM3MzE4Nzk5OQ and tweaked vals
-		// Other ways to generate online are listed here https://blender.stackexchange.com/questions/31424/planet-texture-generator
-		// Roughness was channel corrected using this https://www.tuxpi.com/photo-effects/colorswap with config: 0% red, 100% green (negated), 100% blue
-		const planet3Textures = {
-			diffuse: new Texture((new URL('../assets/generated_planets/planet1_toxic/diffuse.png', import.meta.url)).pathname, scene),
-			normal: new Texture((new URL('../assets/generated_planets/planet1_toxic/normal.png', import.meta.url)).pathname, scene),
-			roughness: new Texture((new URL('../assets/generated_planets/planet1_toxic/roughness_channel_corrected.jpg', import.meta.url)).pathname, scene),
-			cloudsDiffuse: new Texture((new URL('../assets/generated_planets/planet1_toxic/clouds.png', import.meta.url)).pathname, scene),
-		};
-		planet3Mat.albedoTexture = planet3Textures.diffuse;
-		planet3Mat.bumpTexture = planet3Textures.normal;
-		planet3Mat.metallicTexture = planet3Textures.roughness;
-		planet3Mat.useMetallnessFromMetallicTextureBlue = true;
-		planet3Mat.useRoughnessFromMetallicTextureGreen = false; // Normally we'd set this to true and Alpha to false but I don't want this super shiny so here we are.
-		planet3Mat.useRoughnessFromMetallicTextureAlpha = true;
-		
-		const planet3 = MeshBuilder.CreateSphere('planet3', { diameter: 3.5, segments: 26 }, scene);
-		this.planets.push({
-			mesh: planet3,
-			name: 'Lyke GS'
-		});
-		planet3.position.addInPlace(new Vector3(-20, 20, 100));
-		planet3.rotation.addInPlace(new Vector3(0, 0, Math.PI * 0.12));
-		planet3.material = planet3Mat;
-		
-		// Sphere LOD alts
-		{
-			const sphereMed = MeshBuilder.CreateSphere(`${planet3.name}Med`, { diameter: 3, segments: 8 }, scene);
-			const sphereLow = MeshBuilder.CreateSphere(`${planet3.name}Low`, { diameter: 3, segments: 3 }, scene);
-			
-			// Use the same material for these
-			sphereMed.material = planet3Mat;
-			sphereLow.material = planet3Mat;
-			
-			// This is just for organization in the inspector
-			sphereMed.parent = planet3;
-			sphereLow.parent = planet3;
-			
-			// Attach the various LODs to the main mesh
-			planet3.useLODScreenCoverage = true;
-			planet3.addLODLevel(0.01, sphereMed);
-			planet3.addLODLevel(0.001, sphereLow);
-		}
-		
-		// Clouds
-		{
-			const cloudHeightPerc = 0.05;
-			const planet3CloudsMesh = MeshBuilder.CreateSphere('planet3Clouds', { diameter: 3.5 + (cloudHeightPerc * 3.5), segments: 26 / 2 }, scene);
-			planet3CloudsMesh.parent = planet3;
-			planet3CloudsMesh.isPickable = false;
-			
-			const planet3CloudsMat = new PBRMaterial('planet3CloudsMat', scene);
-			planet3CloudsMat.opacityTexture = planet3Textures.cloudsDiffuse;
-			planet3CloudsMat.metallic = 0.0;
-			planet3CloudsMat.roughness = 1.0;
-			planet3CloudsMesh.material = planet3CloudsMat;
-			
-			// Rotate the cloud cover slowly
-			const cloudRotationSpeed = 0.001;
-			this.onTickCallbacks.push((_delta, animationRatio) =>
-				planet3CloudsMesh.rotate(new Vector3(0, 1, 0), cloudRotationSpeed * animationRatio));
-		}
 		
 	}
 	
