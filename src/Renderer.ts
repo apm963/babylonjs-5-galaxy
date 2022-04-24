@@ -269,6 +269,7 @@ export class Renderer {
 		planet3Mat.roughness = 1.0;
 		
 		// Textures created with http://wwwtyro.github.io/procedural.js/planet1/ using seed Njg2NDM3MzE4Nzk5OQ and tweaked vals
+		// Other ways to generate online are listed here https://blender.stackexchange.com/questions/31424/planet-texture-generator
 		// Roughness was channel corrected using this https://www.tuxpi.com/photo-effects/colorswap with config: 0% red, 100% green (negated), 100% blue
 		const planet3Textures = {
 			diffuse: new Texture((new URL('../assets/generated_planets/planet1_toxic/diffuse.png', import.meta.url)).pathname, scene),
@@ -461,7 +462,7 @@ export class Renderer {
 				return;
 			}
 			
-			const point = mesh.position;
+			const point = mesh.absolutePosition;
 			
 			const origAlpha = camera.alpha;
 			const origBeta = camera.beta;
