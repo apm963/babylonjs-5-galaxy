@@ -1,5 +1,5 @@
 
-enum ControlType {
+export enum ControlType {
 	Container,
 	Rectangle,
 	Text,
@@ -8,31 +8,31 @@ enum ControlType {
 
 module Base {
 	export interface Control {
-		type: ControlType;
+		readonly type: ControlType;
 		
-		label?: string;
-		children?: Control[];
-		ref?: any;
+		readonly label?: string;
+		readonly children?: Control[];
+		readonly ref?: any;
 	}
 }
 
 export type Control<T> = Container<T> | Rectangle<T> | Text<T> | Line<T>;
 
 export interface Container<T> extends Base.Control {
-	type: ControlType.Container;
+	readonly type: ControlType.Container;
 }
 
 export interface Rectangle<T> extends Base.Control {
-	type: ControlType.Rectangle;
+	readonly type: ControlType.Rectangle;
 }
 
 export interface Text<T> extends Base.Control {
-	type: ControlType.Text;
+	readonly type: ControlType.Text;
 }
 
 export interface Line<T> extends Base.Control {
-	type: ControlType.Line;
-	points: any[];
+	readonly type: ControlType.Line;
+	readonly points: any[];
 }
 
 export type WhichControl<T> = (

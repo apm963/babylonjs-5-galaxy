@@ -5,18 +5,27 @@ function CreateRef() {
 	
 }
 
-function CreateCanvas(content: Types.Control[]) {
-	
+function CreateCanvas<T extends (Types.WhichControl<T[number]>[])>(content: T): T {
+	return null as any;
 }
+
+/* function tester<T extends (Types.WhichControl<T[number]>[])>(value: T) {
+	
+} */
 
 // Test
 
-/* CreateCanvas([
+// tester([{type: Types.ControlType.Container, }, {type: Types.ControlType.Line, points: []}]);
+
+const t = CreateCanvas([
 	{
-		type: 'container',
-		points: [
-			
-		]
-	}
+		type: Types.ControlType.Container,
+		
+	},
+	{
+		type: Types.ControlType.Line,
+		points: [],
+	},
 ]);
- */
+
+const first = t[0].type;
