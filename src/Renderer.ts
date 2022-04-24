@@ -3,6 +3,7 @@ import {
 	AbstractMesh,
 	Animation,
 	ArcRotateCamera,
+	Camera,
 	Color3,
 	CubeTexture,
 	DefaultRenderingPipeline,
@@ -20,6 +21,7 @@ import {
 	Scene,
 	StandardMaterial,
 	Texture,
+	TransformNode,
 	Vector2,
 	Vector3,
 } from "@babylonjs/core";
@@ -143,10 +145,14 @@ export class Renderer {
 		hdrEnvironmentTexture.level = 2;
 		scene.environmentTexture = hdrEnvironmentTexture;
 		
+		// Solar system transform node for local positioning
+		const solarSystemTransformNode = new TransformNode('solarSystem', scene);
+		
 		// Add light (sun)
 		const sunLight = new PointLight("pointLight", new Vector3(50, 50, -10), scene);
 		sunLight.intensity = 50000;
 		sunLight.diffuse = Color3.FromHexString('#FFD8A3');
+		sunLight.parent = solarSystemTransformNode;
 		this.sunLight = sunLight;
 		
 		// Skybox
@@ -167,8 +173,8 @@ export class Renderer {
 		skybox.material = skyboxMaterial;
 		
 		// Other stuff
-		this.initPost(engine, scene);
-		this.initPlanets(scene);
+		this.initPost(engine, scene, [camera]);
+		this.initPlanets(scene, solarSystemTransformNode);
 		this.initGuiWip();
 		Renderer.initJumpToCameraPosition(scene, this.defaultCamera, 1);
 		
@@ -188,8 +194,8 @@ export class Renderer {
 		
 	}
 	
-	initPost(engine: Engine, scene: Scene) {
-		const defaultPipe = new DefaultRenderingPipeline('Default Pipeline', true, scene, this.defaultCamera ? [this.defaultCamera] : undefined);
+	initPost(engine: Engine, scene: Scene, cameras: Camera[]) {
+		const defaultPipe = new DefaultRenderingPipeline('Default Pipeline', true, scene, cameras);
 		
 		defaultPipe.fxaaEnabled = true;
 		
@@ -203,7 +209,7 @@ export class Renderer {
 		defaultPipe.bloomScale = 0.5;
 	}
 	
-	initPlanets(scene: Scene) {
+	initPlanets(scene: Scene, solarSystemTransformNode: TransformNode) {
 		
 		const highlightLayer = new HighlightLayer("hl1", scene);
 		
@@ -251,6 +257,7 @@ export class Renderer {
 					mat.baseColor = Color3.Blue();
 					return mat;
 				})(),
+				parent: solarSystemTransformNode,
 				postCreateCb: meshes => {
 					const allMeshes = [meshes.main, ...meshes.lods];
 					allMeshes.forEach(mesh => highlightLayer.addMesh(mesh, new Color3(0.2, 0.4, 1).scale(0.3)));
@@ -275,6 +282,7 @@ export class Renderer {
 					mat.baseColor = Color3.Teal();
 					return mat;
 				})(),
+				parent: solarSystemTransformNode,
 				postCreateCb: meshes => {
 					const allMeshes = [meshes.main, ...meshes.lods];
 					meshes.main.position.addInPlace(new Vector3(200, 0, 0));
@@ -315,6 +323,7 @@ export class Renderer {
 					
 					return mat;
 				})(),
+				parent: solarSystemTransformNode,
 				postCreateCb: (meshes, solarBodyConfig) => {
 					meshes.main.position.addInPlace(new Vector3(-20, 20, 100));
 					meshes.main.rotation.addInPlace(new Vector3(0, 0, Math.PI * 0.12));
