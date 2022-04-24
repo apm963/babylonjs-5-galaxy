@@ -176,6 +176,7 @@ export class Renderer {
 		this.initPost(engine, scene, [camera]);
 		this.initPlanets(scene, solarSystemTransformNode);
 		this.initGuiWip();
+		this.registerGalaxyScaling(camera, solarSystemTransformNode);
 		Renderer.initJumpToCameraPosition(scene, this.defaultCamera, 1);
 		
 		// Set up collisions on meshes
@@ -527,6 +528,39 @@ export class Renderer {
 			
 		});
 		
+	}
+	
+	/**
+	 * Binds the camera's radius to the local solar system transform node so zooming out shows "galaxy scale"
+	 */
+	registerGalaxyScaling(camera: ArcRotateCamera, solarSystemTransformNode: TransformNode) {
+		
+		const easingFunction = new QuinticEase();
+		easingFunction.setEasingMode(EasingFunction.EASINGMODE_EASEOUT);
+		
+		const scaleDistanceControl = {
+			start: 100,
+			end: 400,
+		};
+		
+		const scaleAmount = {
+			max: 1,
+			min: 0.1,
+		};
+		const scaleRange = scaleAmount.max - scaleAmount.min;
+		const scaleVector = new Vector3(1, 1, 1);
+		
+		this.onTickCallbacks.push(() => {
+			
+			const linearScalePerc = Renderer.getDistanceRangePercentage(scaleDistanceControl.start, scaleDistanceControl.end, camera.radius);
+			const gradientScalePerc = easingFunction.ease(linearScalePerc);
+			
+			const newSolarSystemScale = scaleAmount.max - (gradientScalePerc * scaleRange);
+			scaleVector.setAll(newSolarSystemScale);
+			
+			solarSystemTransformNode.scaling = scaleVector;
+			
+		});
 	}
 	
 	static initJumpToCameraPosition(scene: Scene, camera: ArcRotateCamera, animationDurationSeconds: number = 1) {
