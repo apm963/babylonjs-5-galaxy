@@ -419,7 +419,7 @@ export class Renderer {
 				return;
 			}
 			
-			const distance = Vector3.Distance(this.defaultCamera?.position, planetMesh.position);
+			const distance = Vector3.Distance(this.defaultCamera?.position, planetMesh.absolutePosition);
 			
 			const opacityPerc = Renderer.getDistanceRangePercentage(opacityDistanceControl.start, opacityDistanceControl.end, distance);
 			const opacity = 1 - opacityPerc;
