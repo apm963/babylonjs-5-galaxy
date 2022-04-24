@@ -146,6 +146,7 @@ export class Renderer {
 		// Add light (sun)
 		const sunLight = new PointLight("pointLight", new Vector3(50, 50, -10), scene);
 		sunLight.intensity = 50000;
+		sunLight.diffuse = Color3.FromHexString('#FFD8A3');
 		this.sunLight = sunLight;
 		
 		// Skybox
