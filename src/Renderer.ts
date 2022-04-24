@@ -588,6 +588,12 @@ export class Renderer {
 				return;
 			}
 			
+			// Only allow jumping if we are not in galaxy scaling mode
+			if (!solarSystemTransformNode.scaling.equalsWithEpsilon(Vector3.One(), 0.01)) {
+				console.log('Not changing current focused mesh because we are in galaxy scaling mode');
+				return;
+			}
+			
 			const point = mesh.absolutePosition;
 			
 			const origAlpha = camera.alpha;
