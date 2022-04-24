@@ -5,9 +5,9 @@ import {
 	ArcRotateCamera,
 	Color3,
 	CubeTexture,
+	DefaultRenderingPipeline,
 	EasingFunction,
 	Engine,
-	EquiRectangularCubeTexture,
 	HighlightLayer,
 	MeshBuilder,
 	PBRMaterial,
@@ -148,6 +148,7 @@ export class Renderer {
 		skybox.material = skyboxMaterial;
 		
 		// Other stuff
+		this.initPost(engine, scene);
 		this.initPlanets(scene);
 		this.initGuiWip();
 		Renderer.initJumpToCameraPosition(scene, this.defaultCamera, 1);
@@ -168,6 +169,21 @@ export class Renderer {
 		
 	}
 	
+	initPost(engine: Engine, scene: Scene) {
+		const defaultPipe = new DefaultRenderingPipeline('Default Pipeline', true, scene, this.defaultCamera ? [this.defaultCamera] : undefined);
+		
+		defaultPipe.fxaaEnabled = true;
+		
+		defaultPipe.imageProcessing.toneMappingEnabled = true;
+		defaultPipe.imageProcessing.toneMappingType = 1;
+		
+		defaultPipe.bloomEnabled = true;
+		defaultPipe.bloomThreshold = 0.5;
+		defaultPipe.bloomWeight = 0.7;
+		defaultPipe.bloomKernel = 64;
+		defaultPipe.bloomScale = 0.5;
+	}
+	
 	initPlanets(scene: Scene) {
 		
 		// *****************************
@@ -175,7 +191,7 @@ export class Renderer {
 		// *****************************
 		
 		const sunMat = new StandardMaterial('sunMat', scene);
-		sunMat.emissiveColor = Color3.Yellow();
+		sunMat.emissiveColor = Color3.FromHexString('#FFD8A3');
 		
 		const sun = MeshBuilder.CreateSphere('sun', { diameter: 2, segments: 3 }, scene);
 		this.planets.push({
@@ -456,12 +472,14 @@ export class Renderer {
 			// const point = pickingInfo.pickedPoint;
 			const mesh = pickingInfo.pickedMesh;
 			
+			console.log(mesh);
+			
 			if (!mesh) {
 				// Nothing to do here
 				return;
 			}
 			
-			const point = mesh.position;
+			const point = mesh.absolutePosition;
 			
 			const origAlpha = camera.alpha;
 			const origBeta = camera.beta;
