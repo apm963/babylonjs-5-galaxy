@@ -55,7 +55,7 @@ interface SolarBodyConfig {
 	};
 	material: Material;
 	parent?: null | Node;
-	postCreateCb?: (mesh: Mesh, solarBodyConfig: SolarBodyConfig) => void;
+	postCreateCb?: (meshes: {main: Mesh, lods: Mesh[]}, solarBodyConfig: SolarBodyConfig) => void;
 }
 
 interface PlanetMeta {
@@ -228,8 +228,9 @@ export class Renderer {
 					mat.baseColor = Color3.Blue();
 					return mat;
 				})(),
-				postCreateCb: mesh => {
-					highlightLayer.addMesh(mesh, new Color3(0.2, 0.4, 1).scale(0.3));
+				postCreateCb: meshes => {
+					const allMeshes = [meshes.main, ...meshes.lods];
+					allMeshes.forEach(mesh => highlightLayer.addMesh(mesh, new Color3(0.2, 0.4, 1).scale(0.3)));
 				},
 			},
 			{
@@ -251,9 +252,10 @@ export class Renderer {
 					mat.baseColor = Color3.Teal();
 					return mat;
 				})(),
-				postCreateCb: mesh => {
-					mesh.position.addInPlace(new Vector3(200, 0, 0));
-					// highlightLayer.addMesh(mesh, new Color3(0.2, 0.4, 1).scale(0.3));
+				postCreateCb: meshes => {
+					const allMeshes = [meshes.main, ...meshes.lods];
+					meshes.main.position.addInPlace(new Vector3(200, 0, 0));
+					allMeshes.forEach(mesh => highlightLayer.addMesh(mesh, new Color3(0.2, 0.4, 1).scale(1)));
 				},
 			},
 			{
@@ -290,10 +292,9 @@ export class Renderer {
 					
 					return mat;
 				})(),
-				postCreateCb: (mesh, solarBodyConfig) => {
-					mesh.position.addInPlace(new Vector3(-20, 20, 100));
-					mesh.rotation.addInPlace(new Vector3(0, 0, Math.PI * 0.12));
-					// highlightLayer.addMesh(mesh, new Color3(0.2, 0.4, 1).scale(0.3));
+				postCreateCb: (meshes, solarBodyConfig) => {
+					meshes.main.position.addInPlace(new Vector3(-20, 20, 100));
+					meshes.main.rotation.addInPlace(new Vector3(0, 0, Math.PI * 0.12));
 					
 					// Set up cloud layer
 					const cloudHeightPerc = 0.05;
@@ -305,7 +306,7 @@ export class Renderer {
 						},
 						scene
 					);
-					cloudsMesh.parent = mesh;
+					cloudsMesh.parent = meshes.main;
 					cloudsMesh.isPickable = false;
 					
 					const cloudsDiffuse = new Texture((new URL('../assets/generated_planets/planet1_toxic/clouds.png', import.meta.url)).pathname, scene);
@@ -348,6 +349,8 @@ export class Renderer {
 			}
 			
 			// Set up LOD alts
+			const lodMeshes: Mesh[] = [];
+			
 			if (solarBodyConfig.lodConfig) {
 				
 				sphereMesh.useLODScreenCoverage = solarBodyConfig.lodConfig.useLODScreenCoverage === true;
@@ -359,6 +362,7 @@ export class Renderer {
 						{ diameter: solarBodyConfig.baseConfig.diameter, segments: lodLevelConfig.segments },
 						scene
 					);
+					lodMeshes.push(lodSphereMesh);
 					
 					// Use the same material for these
 					lodSphereMesh.material = solarBodyConfig.material;
@@ -374,7 +378,7 @@ export class Renderer {
 			}
 			
 			// Run custom code
-			solarBodyConfig.postCreateCb && solarBodyConfig.postCreateCb(sphereMesh, solarBodyConfig);
+			solarBodyConfig.postCreateCb && solarBodyConfig.postCreateCb({main: sphereMesh, lods: lodMeshes}, solarBodyConfig);
 			
 		});
 		
