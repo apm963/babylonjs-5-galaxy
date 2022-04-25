@@ -2,6 +2,8 @@
 
 This is a tech demo of Babylon.js version 5.x in conjunction with the [v5 release event](https://forum.babylonjs.com/t/shhh-its-a-secret-babylon-js-5-0-is-here-early/28938).
 
+[Try it out!](https://apm963.github.io/babylonjs-5-galaxy/)
+
 It features the following techniques:
 
 - [Physically Based Rendering (PBR)](https://doc.babylonjs.com/divingDeeper/materials/using/introToPBR) with [HDR environment lighting](https://doc.babylonjs.com/divingDeeper/materials/using/HDREnvironment)
