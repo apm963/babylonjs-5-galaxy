@@ -21,6 +21,9 @@ interface HmrData {
         beta: number;
         radius: number;
     };
+    solarSystemTransformNode?: {
+        pivot: Vector3;
+    }
 }
 
 interface HotProps<T> {
@@ -44,13 +47,17 @@ if (process.env.NODE_ENV === 'development') {
         module.hot.dispose(dataRef => {
             
             // Snapshot data for whatever you want to retain before HMR unload
-            const defaultCamera = renderer.defaultCamera;
+            const { defaultCamera, solarSystemTransformNode } = renderer;
             
             dataRef.defaultCamera = !defaultCamera ? undefined : {
                 target: defaultCamera.target,
                 alpha: defaultCamera.alpha,
                 beta: defaultCamera.beta,
                 radius: defaultCamera.radius,
+            };
+            
+            dataRef.solarSystemTransformNode = !solarSystemTransformNode ? undefined : {
+                pivot: solarSystemTransformNode.getPivotPoint(),
             };
             
             // Cleanly dispose of the engine instance
@@ -64,13 +71,19 @@ if (process.env.NODE_ENV === 'development') {
             const data = module.hot.data;
             
             // Restore camera
-            const defaultCamera = renderer.defaultCamera;
+            const { defaultCamera, solarSystemTransformNode } = renderer;
             if (data.defaultCamera && defaultCamera !== null){
                 console.log('Restoring camera to previous position');
                 defaultCamera.target = data.defaultCamera.target;
                 defaultCamera.alpha = data.defaultCamera.alpha;
                 defaultCamera.beta = data.defaultCamera.beta;
                 defaultCamera.radius = data.defaultCamera.radius;
+            }
+            
+            // Restore solar system pivot point
+            if (data.solarSystemTransformNode && solarSystemTransformNode !== null) {
+                console.log('Restoring solar system transform node pivot point');
+                solarSystemTransformNode.setPivotPoint(data.solarSystemTransformNode.pivot);
             }
             
         });

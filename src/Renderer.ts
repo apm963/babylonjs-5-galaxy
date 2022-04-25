@@ -89,7 +89,12 @@ const defaultPlanetLabelOpts: PlanetLabelOpts = {
 export class Renderer {
 	
 	engine: Engine;
+	
+	// Properties we are exposing for HMR
 	defaultCamera: null | ArcRotateCamera = null;
+	solarSystemTransformNode: null | TransformNode = null;
+	
+	// Properties to persist on this instance
 	solarBodies: PlanetMeta[] = [];
 	sunLight: null | PointLight = null;
 	
@@ -149,6 +154,7 @@ export class Renderer {
 		
 		// Solar system transform node for local positioning
 		const solarSystemTransformNode = new TransformNode('solarSystem', scene);
+		this.solarSystemTransformNode = solarSystemTransformNode;
 		
 		// Add light (sun)
 		const sunLight = new PointLight("pointLight", new Vector3(50, 50, -10), scene);
