@@ -7,6 +7,11 @@
             "source": "src/index.html",
             "scopeHoist": false,
             "publicUrl": "./"
+        },
+        "ghPages": {
+            "source": "src/index.html",
+            "scopeHoist": false,
+            "publicUrl": "./dist/ghPages/."
         }
     },
     "license": "MIT",
@@ -15,7 +20,8 @@
     "private": true,
     "scripts": {
         "start": "parcel --target webStandalone --https --dist-dir dist/dev",
-        "build": "parcel build --target webStandalone"
+        "build": "parcel build --target webStandalone --no-source-maps",
+        "gh-pages": "parcel build --target ghPages --no-source-maps && cp dist/ghPages/index.html ./index.html"
     },
     "dependencies": {
         "@babylonjs/core": "^5.3.0",
