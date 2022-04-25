@@ -6,7 +6,7 @@
         "webStandalone": {
             "source": "src/index.html",
             "scopeHoist": false,
-            "publicUrl": "./"
+            "publicUrl": "./dist/."
         }
     },
     "license": "MIT",
@@ -15,7 +15,8 @@
     "private": true,
     "scripts": {
         "start": "parcel --target webStandalone --https --dist-dir dist/dev",
-        "build": "parcel build --target webStandalone"
+        "build": "parcel build --target webStandalone --no-source-maps",
+        "gh-pages": "yarn build && cp dist/index.html ./index.html"
     },
     "dependencies": {
         "@babylonjs/core": "^5.3.0",

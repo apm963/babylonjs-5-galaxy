@@ -31,3 +31,13 @@ Or within Docker
 ```sh
 docker run --rm -it -v $(pwd):/usr/local/app -w /usr/local/app -p 1234:1234 node /bin/bash -c 'yarn && yarn start'
 ```
+
+## Build
+
+To create a production build, run
+
+```sh
+yarn build
+```
+
+To build for Github Pages, use `yarn gh-pages` instead.
