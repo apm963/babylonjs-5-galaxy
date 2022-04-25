@@ -543,11 +543,11 @@ export class Renderer {
 	 */
 	registerGalaxyScaling(camera: ArcRotateCamera, solarSystemTransformNode: TransformNode) {
 		
-		// const easingFunction = new SineEase();
-		// easingFunction.setEasingMode(EasingFunction.EASINGMODE_EASEIN);
-		
-		const easingFunction = new CircleEase();
+		const easingFunction = new SineEase();
 		easingFunction.setEasingMode(EasingFunction.EASINGMODE_EASEIN);
+		
+		// const easingFunction = new CircleEase();
+		// easingFunction.setEasingMode(EasingFunction.EASINGMODE_EASEIN);
 		
 		const scaleDistanceControl = {
 			start: 100,
@@ -556,7 +556,7 @@ export class Renderer {
 		
 		const scaleAmount = {
 			max: 1,
-			min: 0.1,
+			min: 0.05,
 		};
 		const scaleRange = scaleAmount.max - scaleAmount.min;
 		const scaleVector = Vector3.One();
