@@ -4,12 +4,14 @@ import {
 	Animation,
 	ArcRotateCamera,
 	Camera,
+	ChromaticAberrationPostProcess,
 	CircleEase,
 	Color3,
 	CubeTexture,
 	DefaultRenderingPipeline,
 	EasingFunction,
 	Engine,
+	HemisphericLight,
 	HighlightLayer,
 	Material,
 	Mesh,
@@ -26,6 +28,7 @@ import {
 	TransformNode,
 	Vector2,
 	Vector3,
+	VolumetricLightScatteringPostProcess,
 } from "@babylonjs/core";
 
 import {
@@ -47,6 +50,7 @@ import "@babylonjs/core/Materials/Textures/Loaders";
 
 // Other imports
 import "./polyfills";
+import { FurMaterial } from "@babylonjs/materials";
 
 interface SolarBodyConfig {
 	type: PlanetMeta['type'];
@@ -163,6 +167,16 @@ export class Renderer {
 		sunLight.parent = solarSystemTransformNode;
 		this.sunLight = sunLight;
 		
+		var ambientLight = new HemisphericLight("ambientLight", new Vector3(0, -1, 0), scene);
+		ambientLight.diffuse = Color3.FromHexString("#F96229");
+		ambientLight.specular = Color3.FromHexString("#FCE13D");
+		ambientLight.intensity = 5;
+		var ambientLight2 = new HemisphericLight("ambientLight", new Vector3(0, 1, 0), scene);
+		ambientLight2.diffuse = Color3.FromHexString("#F96229");
+		ambientLight2.specular = Color3.FromHexString("#FCE13D");
+		ambientLight2.intensity = 5;
+		
+		
 		// Skybox
 		const skybox = MeshBuilder.CreateBox("skyBox", { size: 9000.0 }, scene);
 		skybox.infiniteDistance = true;
@@ -208,14 +222,19 @@ export class Renderer {
 		
 		defaultPipe.fxaaEnabled = true;
 		
-		defaultPipe.imageProcessing.toneMappingEnabled = true;
-		defaultPipe.imageProcessing.toneMappingType = 1;
+		// defaultPipe.imageProcessing. = true;
+		// defaultPipe.imageProcessing.toneMappingEnabled = true;
+		// defaultPipe.imageProcessing.toneMappingType = 1;
 		
-		defaultPipe.bloomEnabled = true;
+		/* defaultPipe.bloomEnabled = true;
 		defaultPipe.bloomThreshold = 0.5;
 		defaultPipe.bloomWeight = 0.7;
 		defaultPipe.bloomKernel = 64;
-		defaultPipe.bloomScale = 0.5;
+		defaultPipe.bloomScale = 0.5; */
+		
+		defaultPipe.chromaticAberrationEnabled = true;
+		defaultPipe.chromaticAberration.aberrationAmount = 30;
+		defaultPipe.chromaticAberration.radialIntensity = 0.8;
 	}
 	
 	initPlanets(scene: Scene, solarSystemTransformNode: TransformNode) {
@@ -237,14 +256,63 @@ export class Renderer {
 				},
 				material: (() => {
 					const mat = new StandardMaterial('tempMat', scene);
-					mat.emissiveColor = Color3.FromHexString('#FFD8A3');
+					mat.emissiveColor = Color3.FromHexString('#FFF8EE');
 					mat.disableLighting = true; // This is fully emissive so no need for lighting
 					return mat;
 				})(),
 				parent: this.sunLight,
 				postCreateCb: meshes => {
 					const allMeshes = [meshes.main, ...meshes.lods];
+					
+					const FUR_TEXTURE = 'https://images.pexels.com/photos/39561/solar-flare-sun-eruption-energy-39561.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2';
+					const DOME_TEXTURE = 'https://images.pexels.com/photos/2832382/pexels-photo-2832382.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2';
+					
+					const furMat = new FurMaterial('SunRayMat', scene);
+					
+					furMat.furLength = 4;
+					furMat.furAngle = 0;
+					furMat.furColor = new Color3(1, 1, 1);
+					furMat.diffuseTexture = new Texture(FUR_TEXTURE, scene);
+					furMat.furTexture = FurMaterial.GenerateTexture('SunRayTexture', scene);
+					furMat.furSpacing = 8;
+					furMat.furDensity = 10;
+					furMat.furSpeed = 100;
+					furMat.furGravity = new Vector3(0, 0, 0);
+					
+					let mirrorMat = new StandardMaterial("mirrorMat", scene);
+					mirrorMat.diffuseColor = mirrorMat.emissiveColor = new Color3(1, 1 ,1);
+					mirrorMat.diffuseTexture = mirrorMat.emissiveTexture = new Texture(DOME_TEXTURE, scene);
+					mirrorMat.specularColor = new Color3(0, 0.01, 0);
+					mirrorMat.backFaceCulling = false;
+
+					let dysonrHS = MeshBuilder.CreateSphere('dysonHS', {diameter: 20, segments: 32}, scene);
+					dysonrHS.material = mirrorMat;
+					dysonrHS.position = new Vector3(50, 50, -10);
+					
 					allMeshes.forEach(mesh => highlightLayer.addMesh(mesh, Color3.Yellow().scale(0.3)));
+					
+					allMeshes.forEach(mesh => {
+						mesh.material = furMat;
+						FurMaterial.FurifyMesh(mesh, 10);
+						
+						if (this.defaultCamera) {
+							const godRays = new VolumetricLightScatteringPostProcess('GodRays', 1.0, this.defaultCamera, dysonrHS, 100, Texture.BILINEAR_SAMPLINGMODE, this.engine, false, scene);
+							
+							godRays.exposure = 0.5;
+							godRays.decay = 0.96815;
+							godRays.weight = 0.98767;
+							godRays.density = 0.996;
+							
+							console.log('Material:', godRays.mesh.material);
+							
+							if (godRays.mesh.material) {
+								const mat = godRays.mesh.material as StandardMaterial;
+								
+								mat.diffuseTexture = new Texture(DOME_TEXTURE, scene);
+								mat.diffuseTexture.hasAlpha = true;
+							}
+						}
+					});
 				},
 			},
 			{
