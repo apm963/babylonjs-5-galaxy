@@ -7,6 +7,7 @@ import {
 	ChromaticAberrationPostProcess,
 	CircleEase,
 	Color3,
+	Color4,
 	CubeTexture,
 	DefaultRenderingPipeline,
 	EasingFunction,
@@ -17,6 +18,7 @@ import {
 	Mesh,
 	MeshBuilder,
 	Node,
+	ParticleSystem,
 	PBRMaterial,
 	PBRMetallicRoughnessMaterial,
 	PointLight,
@@ -201,6 +203,7 @@ export class Renderer {
 		this.initPost(engine, scene, [camera]);
 		this.initPlanets(scene, solarSystemTransformNode);
 		this.initGuiWip();
+		this.initParticles(scene);
 		this.registerGalaxyScaling(camera, solarSystemTransformNode);
 		Renderer.initJumpToCameraPosition(scene, this.defaultCamera, solarSystemTransformNode, 1);
 		
@@ -609,6 +612,88 @@ export class Renderer {
 			labelRect.linkOffsetY = `${linkOffsetY - (sizePerc * linkOffsetY)}px`;
 			
 		});
+		
+	}
+	
+	initParticles(scene: Scene) {
+		
+		const particleSystem = new ParticleSystem("particles", 2000, scene);
+		particleSystem.particleTexture = new Texture("https://playground.babylonjs.com/textures/flare.png", scene);
+		
+		// Where the particles come from
+		particleSystem.emitter = Vector3.Zero(); // the starting location
+		
+		// Colors of all particles
+		particleSystem.color1 = new Color4(0.7, 0.8, 1.0, 1.0);
+		particleSystem.color2 = new Color4(0.2, 0.5, 1.0, 1.0);
+		particleSystem.colorDead = new Color4(0, 0, 0.2, 0.0);
+		
+		// Size of each particle (random between...
+		particleSystem.minSize = 1;
+		particleSystem.maxSize = 5;
+		
+		// Life time of each particle (random between...
+		particleSystem.minLifeTime = 1000;
+		particleSystem.maxLifeTime = 10000;
+		
+		// Emission rate
+		particleSystem.emitRate = 100;
+		particleSystem.preWarmStepOffset = 100;
+		particleSystem.preWarmCycles = 1000;
+		
+		/******* Emission Space ********/
+		var sphereEmitter = particleSystem.createSphereEmitter(1200);
+		sphereEmitter.radiusRange = 0.2;
+		
+		// Speed
+		particleSystem.minEmitPower = 0;
+		particleSystem.maxEmitPower = 0;
+		particleSystem.updateSpeed = 0.005;
+		
+		// Start the particle system
+		particleSystem.start();
+		
+		{
+			
+			const sunMesh = this.solarBodies.filter(solarBody => solarBody.type === 'star')[0].mesh;
+			
+			const localSystemSingleParticle = new ParticleSystem("particles2", 2, scene);
+			localSystemSingleParticle.particleTexture = particleSystem.particleTexture;
+			
+			// Where the particles come from
+			localSystemSingleParticle.emitter = sunMesh; // the starting location
+			
+			// Colors of all particles
+			localSystemSingleParticle.color1 = Color3.FromHexString('#0f5fff').toColor4();
+			localSystemSingleParticle.color2 = Color3.FromHexString('#0f5fff').toColor4();
+			localSystemSingleParticle.colorDead = Color3.FromHexString('#0f5fff').toColor4(); // new Color4(0, 0, 0.2, 0.0);
+			
+			// Size of each particle (random between...
+			localSystemSingleParticle.minSize = 6;
+			localSystemSingleParticle.maxSize = 6;
+			
+			// Life time of each particle (random between...
+			localSystemSingleParticle.minLifeTime = 0.008;
+			localSystemSingleParticle.maxLifeTime = 0.008;
+			
+			// Emission rate
+			localSystemSingleParticle.emitRate = 110;
+			// particleSystem.preWarmStepOffset = 100;
+			// particleSystem.preWarmCycles = 1000;
+			
+			/******* Emission Space ********/
+			var sphereEmitter = localSystemSingleParticle.createSphereEmitter(0.1);
+			sphereEmitter.radiusRange = 0;
+			
+			// Speed
+			localSystemSingleParticle.minEmitPower = 0;
+			localSystemSingleParticle.maxEmitPower = 0;
+			localSystemSingleParticle.updateSpeed = 0.005;
+			
+			// Start the particle system
+			localSystemSingleParticle.start();
+			
+		}
 		
 	}
 	
