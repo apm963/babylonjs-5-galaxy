@@ -16,6 +16,9 @@ It features the following techniques:
 - [Level Of Detail (LOD)](https://doc.babylonjs.com/divingDeeper/mesh/LOD)
 - TODO: More!
 
+TODO features:
+- Use inverse scene optimizer to *add* god rays and bloom and chromatic abberation until scene drops below target FPS
+
 ## Develop
 
 Run directly
