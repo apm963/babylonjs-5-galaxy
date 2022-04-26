@@ -630,7 +630,7 @@ export class Renderer {
 		
 		const scaleAmount = {
 			max: 1,
-			min: 0.05,
+			min: 0.01,
 		};
 		const scaleRange = scaleAmount.max - scaleAmount.min;
 		const scaleVector = Vector3.One();
