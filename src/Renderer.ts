@@ -101,6 +101,8 @@ export class Renderer {
 	// Properties to persist on this instance
 	solarBodies: PlanetMeta[] = [];
 	sunLight: null | PointLight = null;
+	ambientLight: null | HemisphericLight = null;
+	ambientLight2: null | HemisphericLight = null;
 	
 	onTickCallbacks: ((delta: number, animationRatio: number) => void)[] = [];
 	
@@ -167,15 +169,16 @@ export class Renderer {
 		sunLight.parent = solarSystemTransformNode;
 		this.sunLight = sunLight;
 		
-		var ambientLight = new HemisphericLight("ambientLight", new Vector3(0, -1, 0), scene);
+		const ambientLight = new HemisphericLight("ambientLight", new Vector3(0, -1, 0), scene);
 		ambientLight.diffuse = Color3.FromHexString("#F96229");
 		ambientLight.specular = Color3.FromHexString("#FCE13D");
 		ambientLight.intensity = 5;
-		var ambientLight2 = new HemisphericLight("ambientLight", new Vector3(0, 1, 0), scene);
+		const ambientLight2 = new HemisphericLight("ambientLight", new Vector3(0, 1, 0), scene);
 		ambientLight2.diffuse = Color3.FromHexString("#F96229");
 		ambientLight2.specular = Color3.FromHexString("#FCE13D");
 		ambientLight2.intensity = 5;
-		
+		this.ambientLight = ambientLight;
+		this.ambientLight2 = ambientLight2;
 		
 		// Skybox
 		const skybox = MeshBuilder.CreateBox("skyBox", { size: 9000.0 }, scene);
@@ -263,6 +266,9 @@ export class Renderer {
 				parent: this.sunLight,
 				postCreateCb: meshes => {
 					const allMeshes = [meshes.main, ...meshes.lods];
+					
+					this.ambientLight && (this.ambientLight.includedOnlyMeshes = allMeshes);
+					this.ambientLight2 && (this.ambientLight2.includedOnlyMeshes = allMeshes);
 					
 					const FUR_TEXTURE = 'https://images.pexels.com/photos/39561/solar-flare-sun-eruption-energy-39561.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2';
 					const DOME_TEXTURE = 'https://images.pexels.com/photos/2832382/pexels-photo-2832382.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2';
