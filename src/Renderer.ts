@@ -165,18 +165,18 @@ export class Renderer {
 		// Add light (sun)
 		const sunLight = new PointLight("pointLight", new Vector3(50, 50, -10), scene);
 		sunLight.intensity = 50000;
-		sunLight.diffuse = Color3.FromHexString('#FFD8A3');
+		sunLight.diffuse = Color3.FromHexString('#9271D1'); // #FFD8A3
 		sunLight.parent = solarSystemTransformNode;
 		this.sunLight = sunLight;
 		
 		const ambientLight = new HemisphericLight("ambientLight", new Vector3(0, -1, 0), scene);
 		ambientLight.diffuse = Color3.FromHexString("#F96229");
 		ambientLight.specular = Color3.FromHexString("#FCE13D");
-		ambientLight.intensity = 5;
-		const ambientLight2 = new HemisphericLight("ambientLight", new Vector3(0, 1, 0), scene);
+		ambientLight.intensity = 10;
+		const ambientLight2 = new HemisphericLight("ambientLight2", new Vector3(0, 1, 0), scene);
 		ambientLight2.diffuse = Color3.FromHexString("#F96229");
 		ambientLight2.specular = Color3.FromHexString("#FCE13D");
-		ambientLight2.intensity = 5;
+		ambientLight2.intensity = 10;
 		this.ambientLight = ambientLight;
 		this.ambientLight2 = ambientLight2;
 		
@@ -225,16 +225,17 @@ export class Renderer {
 		
 		defaultPipe.fxaaEnabled = true;
 		
-		// defaultPipe.imageProcessing. = true;
-		// defaultPipe.imageProcessing.toneMappingEnabled = true;
-		// defaultPipe.imageProcessing.toneMappingType = 1;
+		defaultPipe.imageProcessing.toneMappingEnabled = true;
+		defaultPipe.imageProcessing.toneMappingType = 1;
 		
-		/* defaultPipe.bloomEnabled = true;
+		// TODO: Disable on potato devices
+		defaultPipe.bloomEnabled = true;
 		defaultPipe.bloomThreshold = 0.5;
 		defaultPipe.bloomWeight = 0.7;
 		defaultPipe.bloomKernel = 64;
-		defaultPipe.bloomScale = 0.5; */
+		defaultPipe.bloomScale = 0.5;
 		
+		// TODO: Disable on potato devices
 		defaultPipe.chromaticAberrationEnabled = true;
 		defaultPipe.chromaticAberration.aberrationAmount = 30;
 		defaultPipe.chromaticAberration.radialIntensity = 0.8;
@@ -244,13 +245,19 @@ export class Renderer {
 		
 		const highlightLayer = new HighlightLayer("hl1", scene);
 		
+		/** Disable for potato devices */
+		const useGodRays: boolean = !false;
+		
+		/** Powerful GPUs can handle a larger sample size. High end mobile can do like 20 max. */
+		const godRaySampleSize: number = 200;
+		
 		const solarBodyConfigs: SolarBodyConfig[] = [
 			{
 				type: 'star',
 				inspectorName: 'sun',
 				friendlyName: 'Sun',
-				baseConfig: {diameter: 8, segments: 26},
-				lodConfig: {
+				baseConfig: {diameter: 20, segments: 32},
+				lodConfig: useGodRays ? undefined : {
 					useLODScreenCoverage: true,
 					levels: [
 						{level: 0.01, segments: 8},
@@ -258,9 +265,27 @@ export class Renderer {
 					],
 				},
 				material: (() => {
-					const mat = new StandardMaterial('tempMat', scene);
-					mat.emissiveColor = Color3.FromHexString('#FFF8EE');
-					mat.disableLighting = true; // This is fully emissive so no need for lighting
+					// const mat = new StandardMaterial('tempMat', scene);
+					// mat.emissiveColor = Color3.FromHexString('#FFF8EE');
+					// mat.disableLighting = true; // This is fully emissive so no need for lighting
+					
+					const domeTextureUrl = 'https://images.pexels.com/photos/2832382/pexels-photo-2832382.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2';
+					const domeTexture = new Texture(domeTextureUrl, scene);
+					
+					let mat = new StandardMaterial("godRaySunMat", scene);
+					mat.diffuseColor = mat.emissiveColor = new Color3(1, 1 ,1);
+					mat.diffuseTexture = mat.emissiveTexture = domeTexture;
+					mat.specularColor = new Color3(0, 0.01, 0);
+					mat.backFaceCulling = false;
+					
+					if (!useGodRays) {
+						// Boost levels
+						domeTexture.level = 10;
+					}
+					else {
+						domeTexture.level = 1.4;
+					}
+					
 					return mat;
 				})(),
 				parent: this.sunLight,
@@ -270,55 +295,30 @@ export class Renderer {
 					this.ambientLight && (this.ambientLight.includedOnlyMeshes = allMeshes);
 					this.ambientLight2 && (this.ambientLight2.includedOnlyMeshes = allMeshes);
 					
-					const FUR_TEXTURE = 'https://images.pexels.com/photos/39561/solar-flare-sun-eruption-energy-39561.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2';
-					const DOME_TEXTURE = 'https://images.pexels.com/photos/2832382/pexels-photo-2832382.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2';
+					allMeshes.forEach(mesh => highlightLayer.addMesh(mesh, Color3.Blue().scale(0.3)));
 					
-					const furMat = new FurMaterial('SunRayMat', scene);
-					
-					furMat.furLength = 4;
-					furMat.furAngle = 0;
-					furMat.furColor = new Color3(1, 1, 1);
-					furMat.diffuseTexture = new Texture(FUR_TEXTURE, scene);
-					furMat.furTexture = FurMaterial.GenerateTexture('SunRayTexture', scene);
-					furMat.furSpacing = 8;
-					furMat.furDensity = 10;
-					furMat.furSpeed = 100;
-					furMat.furGravity = new Vector3(0, 0, 0);
-					
-					let mirrorMat = new StandardMaterial("mirrorMat", scene);
-					mirrorMat.diffuseColor = mirrorMat.emissiveColor = new Color3(1, 1 ,1);
-					mirrorMat.diffuseTexture = mirrorMat.emissiveTexture = new Texture(DOME_TEXTURE, scene);
-					mirrorMat.specularColor = new Color3(0, 0.01, 0);
-					mirrorMat.backFaceCulling = false;
-
-					let dysonrHS = MeshBuilder.CreateSphere('dysonHS', {diameter: 20, segments: 32}, scene);
-					dysonrHS.material = mirrorMat;
-					dysonrHS.position = new Vector3(50, 50, -10);
-					
-					allMeshes.forEach(mesh => highlightLayer.addMesh(mesh, Color3.Yellow().scale(0.3)));
-					
-					allMeshes.forEach(mesh => {
-						mesh.material = furMat;
-						FurMaterial.FurifyMesh(mesh, 10);
-						
-						if (this.defaultCamera) {
-							const godRays = new VolumetricLightScatteringPostProcess('GodRays', 1.0, this.defaultCamera, dysonrHS, 100, Texture.BILINEAR_SAMPLINGMODE, this.engine, false, scene);
+					if (useGodRays) {
+						allMeshes.forEach(mesh => {
 							
-							godRays.exposure = 0.5;
-							godRays.decay = 0.96815;
-							godRays.weight = 0.98767;
-							godRays.density = 0.996;
-							
-							console.log('Material:', godRays.mesh.material);
-							
-							if (godRays.mesh.material) {
-								const mat = godRays.mesh.material as StandardMaterial;
+							if (this.defaultCamera) {
+								const godRays = new VolumetricLightScatteringPostProcess('GodRays', 1.0, this.defaultCamera, mesh, godRaySampleSize, Texture.BILINEAR_SAMPLINGMODE, this.engine, false, scene);
 								
-								mat.diffuseTexture = new Texture(DOME_TEXTURE, scene);
-								mat.diffuseTexture.hasAlpha = true;
+								godRays.exposure = 0.5;
+								godRays.decay = 0.98115;
+								godRays.weight = 0.98767;
+								godRays.density = 0.996;
+								
+								// console.log('Material:', godRays.mesh.material);
+								
+								// if (godRays.mesh.material) {
+								// 	const mat = godRays.mesh.material as StandardMaterial;
+									
+								// 	mat.diffuseTexture = new Texture(DOME_TEXTURE, scene);
+								// 	mat.diffuseTexture.hasAlpha = true;
+								// }
 							}
-						}
-					});
+						});
+					}
 				},
 			},
 			{
