@@ -12,6 +12,7 @@ import {
 	DefaultRenderingPipeline,
 	EasingFunction,
 	Engine,
+	HardwareScalingOptimization,
 	HemisphericLight,
 	HighlightLayer,
 	Material,
@@ -23,10 +24,14 @@ import {
 	PBRMetallicRoughnessMaterial,
 	PointLight,
 	QuinticEase,
+	RenderTargetsOptimization,
 	Scene,
+	SceneOptimizer,
+	SceneOptimizerOptions,
 	SineEase,
 	StandardMaterial,
 	Texture,
+	TextureOptimization,
 	TransformNode,
 	Vector2,
 	Vector3,
@@ -103,8 +108,12 @@ export class Renderer {
 	// Properties to persist on this instance
 	solarBodies: PlanetMeta[] = [];
 	sunLight: null | PointLight = null;
+	renderingPipeline: null | DefaultRenderingPipeline = null;
+	
+	// God ray properties
 	ambientLight: null | HemisphericLight = null;
 	ambientLight2: null | HemisphericLight = null;
+	godRays: null | VolumetricLightScatteringPostProcess = null;
 	
 	onTickCallbacks: ((delta: number, animationRatio: number) => void)[] = [];
 	
@@ -200,11 +209,12 @@ export class Renderer {
 		skybox.material = skyboxMaterial;
 		
 		// Other stuff
-		this.initPost(engine, scene, [camera]);
-		this.initPlanets(scene, solarSystemTransformNode);
+		this.initPost(scene, [camera]);
+		this.initPlanets(scene, camera, solarSystemTransformNode);
 		this.initGuiWip();
 		this.initParticles(scene);
 		this.registerGalaxyScaling(camera, solarSystemTransformNode);
+		this.autoOptimizeScene(scene, camera);
 		Renderer.initJumpToCameraPosition(scene, this.defaultCamera, solarSystemTransformNode, 1);
 		
 		// Set up collisions on meshes
@@ -223,33 +233,32 @@ export class Renderer {
 		
 	}
 	
-	initPost(engine: Engine, scene: Scene, cameras: Camera[]) {
+	initPost(scene: Scene, cameras: [Camera, ...Camera[]]) {
 		const defaultPipe = new DefaultRenderingPipeline('Default Pipeline', true, scene, cameras);
+		this.renderingPipeline = defaultPipe;
 		
 		defaultPipe.fxaaEnabled = true;
 		
 		defaultPipe.imageProcessing.toneMappingEnabled = true;
 		defaultPipe.imageProcessing.toneMappingType = 1;
 		
-		// TODO: Disable on potato devices
 		defaultPipe.bloomEnabled = true;
 		defaultPipe.bloomThreshold = 0.5;
 		defaultPipe.bloomWeight = 0.7;
 		defaultPipe.bloomKernel = 64;
 		defaultPipe.bloomScale = 0.5;
 		
-		// TODO: Disable on potato devices
 		defaultPipe.chromaticAberrationEnabled = true;
 		defaultPipe.chromaticAberration.aberrationAmount = 30;
 		defaultPipe.chromaticAberration.radialIntensity = 0.8;
 	}
 	
-	initPlanets(scene: Scene, solarSystemTransformNode: TransformNode) {
+	initPlanets(scene: Scene, camera: ArcRotateCamera, solarSystemTransformNode: TransformNode) {
 		
 		const highlightLayer = new HighlightLayer("hl1", scene);
 		
-		/** Disable for potato devices */
-		const useGodRays: boolean = !false;
+		/** Disable upfront for potato devices. Note: this is automatically optimized away otherwise */
+		const useGodRays: boolean = true;
 		
 		/** Powerful GPUs can handle a larger sample size. High end mobile can do like 20 max. */
 		const godRaySampleSize: number = 200;
@@ -304,7 +313,8 @@ export class Renderer {
 						allMeshes.forEach(mesh => {
 							
 							if (this.defaultCamera) {
-								const godRays = new VolumetricLightScatteringPostProcess('GodRays', 1.0, this.defaultCamera, mesh, godRaySampleSize, Texture.BILINEAR_SAMPLINGMODE, this.engine, false, scene);
+								const godRays = new VolumetricLightScatteringPostProcess('GodRays', 1.0, camera, mesh, godRaySampleSize, Texture.BILINEAR_SAMPLINGMODE, this.engine, false, scene);
+								this.godRays = godRays;
 								
 								godRays.exposure = 0.5;
 								godRays.decay = 0.98115;
@@ -319,6 +329,7 @@ export class Renderer {
 								// 	mat.diffuseTexture = new Texture(DOME_TEXTURE, scene);
 								// 	mat.diffuseTexture.hasAlpha = true;
 								// }
+								
 							}
 						});
 					}
@@ -731,6 +742,106 @@ export class Renderer {
 			solarSystemTransformNode.scaling = scaleVector;
 			
 		});
+	}
+	
+	autoOptimizeScene(scene: Scene, camera: ArcRotateCamera) {
+		
+		const targetFps = 30;
+		const optimizationStartDelayMs = 1500;
+		/** Amount of time to wait between optimization passes */
+		const trackerDuration = 1000;
+		const verboseLogging: boolean = true;
+		
+		const options: SceneOptimizerOptions = SceneOptimizerOptions.ModerateDegradationAllowed(targetFps);
+		options.trackerDuration = trackerDuration;
+		
+		const numberOfCustomOptimizations = 3;
+		let currentCustomOptimizationI = 0;
+		
+		options.optimizations = options.optimizations
+			.filter(o => (
+				false
+				// o instanceof PostProcessesOptimization
+				|| o instanceof TextureOptimization
+				|| o instanceof RenderTargetsOptimization
+				|| o instanceof HardwareScalingOptimization
+			)).map((o, i) => {
+				o.priority = i + numberOfCustomOptimizations;
+				return o;
+			});
+		
+		// Disable volumetric lighting and boost star material
+		options.addCustomOptimization(
+			() => {
+				// Disable volumetric post processing
+				this.godRays?.dispose(camera);
+				
+				// Boost solar body
+				this.solarBodies
+					.filter(solarBody => solarBody.type === 'star')
+					.forEach(star => {
+						if (star.mesh.material instanceof StandardMaterial) {
+							star.mesh.material.diffuseTexture && (star.mesh.material.diffuseTexture.level = 10);
+						}
+					});
+				
+				// Slightly increase exposure
+				const exposureTweakAmount = 0.170; // On desktop this looks very similar: 0.170
+				this.renderingPipeline && (this.renderingPipeline.imageProcessing.exposure += exposureTweakAmount);
+				
+				return true;
+			},
+			() => 'Disabling volumetric lighting',
+			currentCustomOptimizationI++
+		);
+		
+		// Disable some postprocessing
+		options.addCustomOptimization(
+			() => {
+				if (this.renderingPipeline) {
+					this.renderingPipeline.bloomEnabled = false;
+					this.renderingPipeline.chromaticAberrationEnabled = false;
+				}
+				return true;
+			},
+			() => 'Disabling bloom and chromatic aberration',
+			currentCustomOptimizationI++
+		);
+		
+		// Disable some more postprocessing
+		options.addCustomOptimization(
+			() => {
+				if (this.renderingPipeline) {
+					this.renderingPipeline.fxaaEnabled = false;
+				}
+				return true;
+			},
+			() => 'Disabling anti aliasing',
+			currentCustomOptimizationI++
+		);
+		
+		setTimeout(() => {
+			
+			verboseLogging && console.log('Optimization: Starting auto optimization');
+			
+			// Apply optimizations
+			const sceneOptimizer = SceneOptimizer.OptimizeAsync(
+				scene,
+				options,
+				() => {
+					verboseLogging && console.log(`Optimization: FPS target reached at priority level ${sceneOptimizer.currentPriorityLevel}`);
+				},
+				() => {
+					verboseLogging && console.log('Optimization: Did not reach FPS target');
+					// alert('Did not reach target');
+				}
+			);
+			
+			// REVIEW: Is this actually needed?
+			sceneOptimizer.trackerDuration = trackerDuration;
+			
+		}, optimizationStartDelayMs);
+		
 	}
 	
 	static initJumpToCameraPosition(scene: Scene, camera: ArcRotateCamera, solarSystemTransformNode: TransformNode, animationDurationSeconds: number = 1) {
