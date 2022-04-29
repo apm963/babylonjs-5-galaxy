@@ -111,8 +111,8 @@ export class Renderer {
 	renderingPipeline: null | DefaultRenderingPipeline = null;
 	
 	// God ray properties
-	ambientLight: null | HemisphericLight = null;
-	ambientLight2: null | HemisphericLight = null;
+	hemiLight1: null | HemisphericLight = null;
+	hemiLight2: null | HemisphericLight = null;
 	godRays: null | VolumetricLightScatteringPostProcess = null;
 	
 	onTickCallbacks: ((delta: number, animationRatio: number) => void)[] = [];
@@ -181,16 +181,16 @@ export class Renderer {
 		sunLight.parent = solarSystemTransformNode;
 		this.sunLight = sunLight;
 		
-		const ambientLight = new HemisphericLight("ambientLight", new Vector3(0, -1, 0), scene);
-		ambientLight.diffuse = Color3.FromHexString("#F96229");
-		ambientLight.specular = Color3.FromHexString("#FCE13D");
-		ambientLight.intensity = 10;
-		const ambientLight2 = new HemisphericLight("ambientLight2", new Vector3(0, 1, 0), scene);
-		ambientLight2.diffuse = Color3.FromHexString("#F96229");
-		ambientLight2.specular = Color3.FromHexString("#FCE13D");
-		ambientLight2.intensity = 10;
-		this.ambientLight = ambientLight;
-		this.ambientLight2 = ambientLight2;
+		const hemiLight1 = new HemisphericLight("hemiLight1", new Vector3(0, -1, 0), scene);
+		hemiLight1.diffuse = Color3.FromHexString("#F96229");
+		hemiLight1.specular = Color3.FromHexString("#FCE13D");
+		hemiLight1.intensity = 10;
+		const hemiLight2 = new HemisphericLight("hemiLight2", new Vector3(0, 1, 0), scene);
+		hemiLight2.diffuse = Color3.FromHexString("#F96229");
+		hemiLight2.specular = Color3.FromHexString("#FCE13D");
+		hemiLight2.intensity = 10;
+		this.hemiLight1 = hemiLight1;
+		this.hemiLight2 = hemiLight2;
 		
 		// Skybox
 		const skybox = MeshBuilder.CreateBox("skyBox", { size: 9000.0 }, scene);
@@ -305,8 +305,8 @@ export class Renderer {
 				postCreateCb: meshes => {
 					const allMeshes = [meshes.main, ...meshes.lods];
 					
-					this.ambientLight && (this.ambientLight.includedOnlyMeshes = allMeshes);
-					this.ambientLight2 && (this.ambientLight2.includedOnlyMeshes = allMeshes);
+					this.hemiLight1 && (this.hemiLight1.includedOnlyMeshes = allMeshes);
+					this.hemiLight2 && (this.hemiLight2.includedOnlyMeshes = allMeshes);
 					
 					allMeshes.forEach(mesh => highlightLayer.addMesh(mesh, Color3.Blue().scale(0.3)));
 					
