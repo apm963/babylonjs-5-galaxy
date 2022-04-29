@@ -311,6 +311,13 @@ export class Renderer {
 					
 					allMeshes.forEach(mesh => highlightLayer.addMesh(mesh, Color3.Blue().scale(0.3)));
 					
+					// TODO: Set up occlusion queries
+					// [meshes.main].forEach(mesh => {
+					// 	mesh.occlusionQueryAlgorithmType = AbstractMesh.OCCLUSION_ALGORITHM_TYPE_CONSERVATIVE;
+					// 	mesh.occlusionType = AbstractMesh.OCCLUSION_TYPE_STRICT;
+					// });
+					// this.onTickCallbacks.push(() => this.renderingPipeline && (this.renderingPipeline.imageProcessing.exposure = meshes.main.isOccluded ? 1 : 0.3));
+					
 					if (useGodRays) {
 						allMeshes.forEach(mesh => {
 							
