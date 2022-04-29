@@ -12,6 +12,7 @@ import {
 	DefaultRenderingPipeline,
 	EasingFunction,
 	Engine,
+	FreeCamera,
 	HardwareScalingOptimization,
 	HemisphericLight,
 	HighlightLayer,
@@ -22,6 +23,7 @@ import {
 	ParticleSystem,
 	PBRMaterial,
 	PBRMetallicRoughnessMaterial,
+	PointerEventTypes,
 	PointLight,
 	QuinticEase,
 	RenderTargetsOptimization,
@@ -35,6 +37,7 @@ import {
 	TransformNode,
 	Vector2,
 	Vector3,
+	Viewport,
 	VolumetricLightScatteringPostProcess,
 } from "@babylonjs/core";
 
@@ -70,6 +73,7 @@ interface SolarBodyConfig {
 	};
 	material: Material;
 	parent?: null | Node;
+	layerMask?: number;
 	postCreateCb?: (meshes: {main: Mesh, lods: Mesh[]}, solarBodyConfig: SolarBodyConfig) => void;
 }
 
@@ -103,6 +107,14 @@ export class Renderer {
 	
 	// Properties we are exposing for HMR
 	defaultCamera: null | ArcRotateCamera = null;
+	exploreCamera: null | ArcRotateCamera = null;
+	useOrthographicExploreCamera: boolean = false;
+	exploreCameraViewport = {
+		x: 0,
+		y: 0,
+		w: 0,
+		h: 0,
+	};
 	solarSystemTransformNode: null | TransformNode = null;
 	
 	// Properties to persist on this instance
@@ -153,11 +165,50 @@ export class Renderer {
 		// Bind mouse events on the canvas to be associated with this camera
 		camera.attachControl(engine._workingCanvas, true);
 		camera.lowerRadiusLimit = 3;
+		camera.viewport = new Viewport(0, 0, 1, 1);
+		camera.layerMask = 0x30000000;  // Set layer mask so that it can see 0x10000000 and 0x20000000 objects
 		
 		// Enable camera collisions
 		const cameraCollisionRadius = 2.0;
 		camera.collisionRadius = new Vector3(cameraCollisionRadius, cameraCollisionRadius, cameraCollisionRadius);
 		camera.checkCollisions = true;
+		
+		// Explore camera
+		const exploreCamera = new ArcRotateCamera("exploreCamera", -Math.PI / 2, Math.PI / 2, 10, Vector3.Zero(), scene);
+		this.exploreCamera = exploreCamera;
+		exploreCamera.useAutoRotationBehavior = true;
+		
+		if (this.useOrthographicExploreCamera) {
+			exploreCamera.mode = Camera.ORTHOGRAPHIC_CAMERA;
+			const orthoScale = 3;
+			exploreCamera.orthoLeft = -orthoScale;
+			exploreCamera.orthoTop = -orthoScale;
+			exploreCamera.orthoRight = orthoScale;
+			exploreCamera.orthoBottom = orthoScale;
+		}
+		
+		// We want to preserve the square PIP look so we'll use the main camera's aspect ratio to adjust the sizes accordingly
+		// Aspect ratio < 1 = Portrait, > 1 = Landscape
+		let ar = engine.getAspectRatio(camera);
+		let pipW = (ar < 1) ? 0.3 : 0.3 * (1/ar);
+		let pipH = (ar < 1) ? 0.3 * ar : 0.3;
+		let pipX = 0; // 1 - pipW;
+		let pipY = 1 - pipH;
+		this.exploreCameraViewport = {
+			x: pipX,
+			y: pipY,
+			w: pipW,
+			h: pipH,
+		};
+		exploreCamera.viewport = new Viewport(pipX, pipY, pipW, pipH);
+		exploreCamera.layerMask = 0x10000000; // Set layer mask to only see 0x10000000 objects
+		
+		// Add cameras to active camera list.  
+		// Each camera MUST be in the active camera list to be displayed with its defined viewport
+		if (scene.activeCameras) {
+			scene.activeCameras.push(camera);
+			scene.activeCameras.push(exploreCamera);
+		}
 		
 		// Initially do not check collisions while scene is initializing
 		scene.collisionsEnabled = false;
@@ -197,6 +248,7 @@ export class Renderer {
 		skybox.infiniteDistance = true;
 		skybox.isPickable = false;
 		skybox.renderingGroupId = 0;
+		skybox.layerMask = 0x10000000;
 		
 		const skyboxHdrConvertedEnvUrl = new URL('../assets/skybox/skybox.env', import.meta.url);
 		const skyboxCubeTexture = CubeTexture.CreateFromPrefilteredData(skyboxHdrConvertedEnvUrl.pathname, scene);
@@ -211,16 +263,19 @@ export class Renderer {
 		skybox.material = skyboxMaterial;
 		
 		// Other stuff
-		this.initPost(scene, [camera]);
+		this.initPost(scene, [camera, exploreCamera]);
 		this.initPlanets(scene, camera, solarSystemTransformNode);
 		this.initGuiWip();
 		this.initParticles(scene);
 		this.registerGalaxyScaling(camera, solarSystemTransformNode);
 		this.autoOptimizeScene(scene, camera);
-		Renderer.initJumpToCameraPosition(scene, this.defaultCamera, solarSystemTransformNode, 1);
+		Renderer.initJumpToCameraPosition(scene, camera, exploreCamera, solarSystemTransformNode, 1);
 		
 		// Set up collisions on meshes
 		this.solarBodies.forEach(solarBody => solarBody.mesh.checkCollisions = true);
+		
+		// Parent the explore camera
+		exploreCamera.parent = this.solarBodies.filter(solarBody => solarBody.type === 'planet')[0].mesh;
 		
 		// Show inspector on dev
 		if (process.env.NODE_ENV === 'development') {
@@ -278,6 +333,7 @@ export class Renderer {
 						{level: 0.001, segments: 3},
 					],
 				},
+				layerMask: 0x20000000,
 				material: (() => {
 					// const mat = new StandardMaterial('tempMat', scene);
 					// mat.emissiveColor = Color3.FromHexString('#FFF8EE');
@@ -445,6 +501,7 @@ export class Renderer {
 						scene
 					);
 					cloudsMesh.renderingGroupId = 1;
+					cloudsMesh.layerMask = 0x10000000;
 					cloudsMesh.parent = meshes.main;
 					cloudsMesh.isPickable = false;
 					
@@ -459,7 +516,7 @@ export class Renderer {
 					// Rotate the cloud cover slowly
 					const cloudRotationSpeed = 0.001;
 					this.onTickCallbacks.push((_delta, animationRatio) =>
-						cloudsMesh.rotate(new Vector3(0, 1, 0), cloudRotationSpeed * animationRatio));
+						cloudsMesh.rotate(new Vector3(0, -1, 0), cloudRotationSpeed * animationRatio));
 					
 				},
 			},
@@ -474,6 +531,7 @@ export class Renderer {
 				scene
 			);
 			sphereMesh.renderingGroupId = 1;
+			sphereMesh.layerMask = solarBodyConfig.layerMask ?? 0x10000000;
 			
 			this.solarBodies.push({
 				mesh: sphereMesh,
@@ -503,6 +561,7 @@ export class Renderer {
 						scene
 					);
 					lodSphereMesh.renderingGroupId = 1;
+					lodSphereMesh.layerMask = 0x10000000;
 					lodMeshes.push(lodSphereMesh);
 					
 					// Use the same material for these
@@ -529,6 +588,7 @@ export class Renderer {
 		
 		// Create 2D GUI manager
 		const advancedTexture = AdvancedDynamicTexture.CreateFullscreenUI('UI'); // 2D GUI (fullscreen)
+		advancedTexture.layer && (advancedTexture.layer.layerMask = 0x20000000); // Set layerMask to only render on main camera
 		
 		this.solarBodies
 			.filter(solarBody => solarBody.type === 'planet')
@@ -643,6 +703,7 @@ export class Renderer {
 		const particleSystem = new ParticleSystem("particles", 2000, scene);
 		particleSystem.particleTexture = new Texture("https://playground.babylonjs.com/textures/flare.png", scene);
 		particleSystem.renderingGroupId = 1;
+		particleSystem.layerMask = 0x10000000;
 		
 		// Where the particles come from
 		particleSystem.emitter = Vector3.Zero(); // the starting location
@@ -744,6 +805,8 @@ export class Renderer {
 		const scaleRange = scaleAmount.max - scaleAmount.min;
 		const scaleVector = Vector3.One();
 		
+		let exploreCameraVisible = true;
+		
 		this.onTickCallbacks.push(() => {
 			
 			const linearScalePerc = Renderer.getDistanceRangePercentage(scaleDistanceControl.start, scaleDistanceControl.end, camera.radius);
@@ -753,6 +816,22 @@ export class Renderer {
 			scaleVector.setAll(newSolarSystemScale);
 			
 			solarSystemTransformNode.scaling = scaleVector;
+			
+			if (this.exploreCamera) {
+				if (solarSystemTransformNode.scaling.equalsWithEpsilon(Vector3.One(), 0.001)) {
+					if (!exploreCameraVisible) {
+						console.log('Toggling explore camera on');
+						exploreCameraVisible = true;
+						const {x, y, w, h} = this.exploreCameraViewport;
+						this.exploreCamera.viewport = new Viewport(x, y, w, h);
+					}
+				}
+				else if (exploreCameraVisible) {
+					console.log('Toggling explore camera off');
+					exploreCameraVisible = false;
+					this.exploreCamera.viewport = new Viewport(0, 0, 0.01, 0.01);
+				}
+			}
 			
 		});
 	}
@@ -857,7 +936,7 @@ export class Renderer {
 		
 	}
 	
-	static initJumpToCameraPosition(scene: Scene, camera: ArcRotateCamera, solarSystemTransformNode: TransformNode, animationDurationSeconds: number = 1) {
+	static initJumpToCameraPosition(scene: Scene, camera: ArcRotateCamera, exploreCamera: ArcRotateCamera, solarSystemTransformNode: TransformNode, animationDurationSeconds: number = 1) {
 		
 		scene.onPointerDown = (e, pickingInfo) => {
 			
@@ -868,13 +947,25 @@ export class Renderer {
 			}
 			
 			// const point = pickingInfo.pickedPoint;
-			const mesh = pickingInfo.pickedMesh;
+			let mesh = pickingInfo.pickedMesh;
 			
 			console.log(mesh);
 			
 			if (!mesh) {
-				// Nothing to do here
-				return;
+				// From here https://forum.babylonjs.com/t/pointer-through-multiple-cameras/10467/5
+				if (!pickingInfo.hit) {
+					let pi = scene.pick(e.x, e.y, null as any, false, camera);
+					if (pi?.pickedMesh) {
+						mesh = pi?.pickedMesh;
+					}
+					else {
+						return;
+					}
+				}
+				else {
+					// Nothing to do here
+					return;
+				}
 			}
 			
 			// Only allow jumping if we are not in galaxy scaling mode
@@ -903,6 +994,14 @@ export class Renderer {
 			// But only set this if we are not already in galaxy space
 			if (solarSystemTransformNode.scaling.equalsWithEpsilon(Vector3.One(), 0.01)) {
 				solarSystemTransformNode.setPivotPoint(point);
+			}
+			
+			// Update explore camera to new location
+			if (mesh.layerMask & exploreCamera.layerMask) {
+				exploreCamera.parent = mesh;
+				const meshBoundingInfo = mesh.getBoundingInfo();
+				const meshSize = meshBoundingInfo.boundingBox.maximum.subtract(meshBoundingInfo.boundingBox.minimum);
+				exploreCamera.radius = meshSize.length();
 			}
 			
 		};
