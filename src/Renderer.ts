@@ -193,9 +193,10 @@ export class Renderer {
 		this.hemiLight2 = hemiLight2;
 		
 		// Skybox
-		const skybox = MeshBuilder.CreateBox("skyBox", { size: 9000.0 }, scene);
+		const skybox = MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, scene);
 		skybox.infiniteDistance = true;
 		skybox.isPickable = false;
+		skybox.renderingGroupId = 0;
 		
 		const skyboxHdrConvertedEnvUrl = new URL('../assets/skybox/skybox.env', import.meta.url);
 		const skyboxCubeTexture = CubeTexture.CreateFromPrefilteredData(skyboxHdrConvertedEnvUrl.pathname, scene);
@@ -436,6 +437,7 @@ export class Renderer {
 						},
 						scene
 					);
+					cloudsMesh.renderingGroupId = 1;
 					cloudsMesh.parent = meshes.main;
 					cloudsMesh.isPickable = false;
 					
@@ -464,6 +466,7 @@ export class Renderer {
 				{ diameter: solarBodyConfig.baseConfig.diameter, segments: solarBodyConfig.baseConfig.segments },
 				scene
 			);
+			sphereMesh.renderingGroupId = 1;
 			
 			this.solarBodies.push({
 				mesh: sphereMesh,
@@ -492,6 +495,7 @@ export class Renderer {
 						{ diameter: solarBodyConfig.baseConfig.diameter, segments: lodLevelConfig.segments },
 						scene
 					);
+					lodSphereMesh.renderingGroupId = 1;
 					lodMeshes.push(lodSphereMesh);
 					
 					// Use the same material for these
@@ -631,6 +635,7 @@ export class Renderer {
 		
 		const particleSystem = new ParticleSystem("particles", 2000, scene);
 		particleSystem.particleTexture = new Texture("https://playground.babylonjs.com/textures/flare.png", scene);
+		particleSystem.renderingGroupId = 1;
 		
 		// Where the particles come from
 		particleSystem.emitter = Vector3.Zero(); // the starting location
