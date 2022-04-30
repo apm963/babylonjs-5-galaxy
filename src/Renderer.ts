@@ -488,35 +488,74 @@ export class Renderer {
 				postCreateCb: (meshes, solarBodyConfig) => {
 					meshes.main.position.addInPlace(new Vector3(-20, 20, 100));
 					meshes.main.rotation.addInPlace(new Vector3(0, 0, Math.PI * 0.12));
+				},
+			},
+			{
+				type: 'planet',
+				inspectorName: 'planet4',
+				friendlyName: 'Vore 0MI',
+				baseConfig: {diameter: 17, segments: 32},
+				lodConfig: {
+					useLODScreenCoverage: true,
+					levels: [
+						{level: 0.01, segments: 8},
+						{level: 0.001, segments: 3},
+					],
+				},
+				material: (() => {
+					const mat = new PBRMaterial('tempMat', scene);
+					
+					// Textures grabbed from https://sites.google.com/site/mapsandsuch/maps-of-fictional-worlds and modified as needed
+					// Other ways to generate online are listed here https://blender.stackexchange.com/questions/31424/planet-texture-generator
+					const planet3Textures = {
+						diffuse: new Texture((new URL('../assets/generated_planets/planet3_dgnyre/dgnyre.jpg', import.meta.url)).pathname, scene),
+						normal: new Texture((new URL('../assets/generated_planets/planet3_dgnyre/NormalMap.png', import.meta.url)).pathname, scene),
+						// roughness: new Texture((new URL('../assets/generated_planets/planet3_dgnyre/roughness_channel_corrected.jpg', import.meta.url)).pathname, scene),
+					};
+					mat.albedoTexture = planet3Textures.diffuse;
+					mat.bumpTexture = planet3Textures.normal;
+					mat.metallic = 0.0; // Set these to 1.0 to use metallic & roughness from texture
+					mat.roughness = 1.0;
+					// mat.metallicTexture = planet3Textures.roughness;
+					// mat.useMetallnessFromMetallicTextureBlue = true;
+					// mat.useRoughnessFromMetallicTextureGreen = true; // Normally we'd set this to true and Alpha to false but I don't want this super shiny so here we are.
+					// mat.useRoughnessFromMetallicTextureAlpha = false;
+					
+					return mat;
+				})(),
+				parent: solarSystemTransformNode,
+				postCreateCb: (meshes, solarBodyConfig) => {
+					meshes.main.position.addInPlace(new Vector3(-200, 20, 100));
+					meshes.main.rotation.addInPlace(new Vector3(0, 0, -(Math.PI * 0.12)));
 					
 					// Set up cloud layer
-					// const cloudHeightPerc = 0.05;
-					// const cloudsMesh = MeshBuilder.CreateSphere(
-					// 	`${solarBodyConfig.inspectorName}_clouds`,
-					// 	{
-					// 		diameter: solarBodyConfig.baseConfig.diameter + (cloudHeightPerc * solarBodyConfig.baseConfig.diameter),
-					// 		segments: solarBodyConfig.baseConfig.segments / 2
-					// 	},
-					// 	scene
-					// );
-					// cloudsMesh.renderingGroupId = 1;
-					// cloudsMesh.layerMask = 0x10000000;
-					// cloudsMesh.parent = meshes.main;
-					// cloudsMesh.isPickable = false;
+					const cloudHeightPerc = 0.05;
+					const cloudsMesh = MeshBuilder.CreateSphere(
+						`${solarBodyConfig.inspectorName}_clouds`,
+						{
+							diameter: solarBodyConfig.baseConfig.diameter + (cloudHeightPerc * solarBodyConfig.baseConfig.diameter),
+							segments: solarBodyConfig.baseConfig.segments / 2
+						},
+						scene
+					);
+					cloudsMesh.renderingGroupId = 1;
+					cloudsMesh.layerMask = 0x10000000;
+					cloudsMesh.parent = meshes.main;
+					cloudsMesh.isPickable = false;
 					
-					// Texture created with http://wwwtyro.github.io/procedural.js/planet1/ using seed Njg2NDM3MzE4Nzk5OQ and tweaked vals
-					// const cloudsDiffuse = new Texture((new URL('../assets/generated_planets/planet2_ertaale/fair_clouds_8k.jpg', import.meta.url)).pathname, scene);
+					// From https://sites.google.com/site/mapsandsuch/maps-of-fictional-worlds
+					const cloudsDiffuse = new Texture((new URL('../assets/generated_planets/planet3_dgnyre/dgnyre-clouds.png', import.meta.url)).pathname, scene);
 					
-					// const cloudsMat = new PBRMaterial(`${solarBodyConfig.inspectorName}_cloudsMat`, scene);
-					// cloudsMat.opacityTexture = cloudsDiffuse;
-					// cloudsMat.metallic = 0.0;
-					// cloudsMat.roughness = 1.0;
-					// cloudsMesh.material = cloudsMat;
+					const cloudsMat = new PBRMaterial(`${solarBodyConfig.inspectorName}_cloudsMat`, scene);
+					cloudsMat.opacityTexture = cloudsDiffuse;
+					cloudsMat.metallic = 0.0;
+					cloudsMat.roughness = 1.0;
+					cloudsMesh.material = cloudsMat;
 					
-					// // Rotate the cloud cover slowly
-					// const cloudRotationSpeed = 0.0002;
-					// this.onTickCallbacks.push((_delta, animationRatio) =>
-					// 	cloudsMesh.rotate(new Vector3(0, -1, 0), cloudRotationSpeed * animationRatio));
+					// Rotate the cloud cover slowly
+					const cloudRotationSpeed = 0.0002;
+					this.onTickCallbacks.push((_delta, animationRatio) =>
+						cloudsMesh.rotate(new Vector3(0, -1, 0), cloudRotationSpeed * animationRatio));
 					
 				},
 			},
