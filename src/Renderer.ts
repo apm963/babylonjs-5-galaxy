@@ -465,23 +465,22 @@ export class Renderer {
 				},
 				material: (() => {
 					const mat = new PBRMaterial('tempMat', scene);
-					mat.metallic = 1.0; // Set these to 1.0 to use metallic & roughness from texture
-					mat.roughness = 1.0;
 					
-					// Textures created with http://wwwtyro.github.io/procedural.js/planet1/ using seed Njg2NDM3MzE4Nzk5OQ and tweaked vals
+					// Textures grabbed from https://sites.google.com/site/mapsandsuch/maps-of-fictional-worlds and modified as needed
 					// Other ways to generate online are listed here https://blender.stackexchange.com/questions/31424/planet-texture-generator
-					// Roughness was channel corrected using this https://www.tuxpi.com/photo-effects/colorswap with config: 0% red, 100% green (negated), 100% blue
 					const planet3Textures = {
-						diffuse: new Texture((new URL('../assets/generated_planets/planet1_toxic/diffuse.png', import.meta.url)).pathname, scene),
-						normal: new Texture((new URL('../assets/generated_planets/planet1_toxic/normal.png', import.meta.url)).pathname, scene),
-						roughness: new Texture((new URL('../assets/generated_planets/planet1_toxic/roughness_channel_corrected.jpg', import.meta.url)).pathname, scene),
+						diffuse: new Texture((new URL('../assets/generated_planets/planet2_ertaale/ertaale_ast_2006036_lrg.jpg', import.meta.url)).pathname, scene),
+						normal: new Texture((new URL('../assets/generated_planets/planet2_ertaale/NormalMap.png', import.meta.url)).pathname, scene),
+						// roughness: new Texture((new URL('../assets/generated_planets/planet2_ertaale/roughness_channel_corrected.jpg', import.meta.url)).pathname, scene),
 					};
 					mat.albedoTexture = planet3Textures.diffuse;
 					mat.bumpTexture = planet3Textures.normal;
-					mat.metallicTexture = planet3Textures.roughness;
-					mat.useMetallnessFromMetallicTextureBlue = true;
-					mat.useRoughnessFromMetallicTextureGreen = false; // Normally we'd set this to true and Alpha to false but I don't want this super shiny so here we are.
-					mat.useRoughnessFromMetallicTextureAlpha = true;
+					mat.metallic = 0.0; // Set these to 1.0 to use metallic & roughness from texture
+					mat.roughness = 1.0;
+					// mat.metallicTexture = planet3Textures.roughness;
+					// mat.useMetallnessFromMetallicTextureBlue = true;
+					// mat.useRoughnessFromMetallicTextureGreen = true; // Normally we'd set this to true and Alpha to false but I don't want this super shiny so here we are.
+					// mat.useRoughnessFromMetallicTextureAlpha = false;
 					
 					return mat;
 				})(),
@@ -491,32 +490,33 @@ export class Renderer {
 					meshes.main.rotation.addInPlace(new Vector3(0, 0, Math.PI * 0.12));
 					
 					// Set up cloud layer
-					const cloudHeightPerc = 0.05;
-					const cloudsMesh = MeshBuilder.CreateSphere(
-						`${solarBodyConfig.inspectorName}_clouds`,
-						{
-							diameter: solarBodyConfig.baseConfig.diameter + (cloudHeightPerc * solarBodyConfig.baseConfig.diameter),
-							segments: solarBodyConfig.baseConfig.segments / 2
-						},
-						scene
-					);
-					cloudsMesh.renderingGroupId = 1;
-					cloudsMesh.layerMask = 0x10000000;
-					cloudsMesh.parent = meshes.main;
-					cloudsMesh.isPickable = false;
+					// const cloudHeightPerc = 0.05;
+					// const cloudsMesh = MeshBuilder.CreateSphere(
+					// 	`${solarBodyConfig.inspectorName}_clouds`,
+					// 	{
+					// 		diameter: solarBodyConfig.baseConfig.diameter + (cloudHeightPerc * solarBodyConfig.baseConfig.diameter),
+					// 		segments: solarBodyConfig.baseConfig.segments / 2
+					// 	},
+					// 	scene
+					// );
+					// cloudsMesh.renderingGroupId = 1;
+					// cloudsMesh.layerMask = 0x10000000;
+					// cloudsMesh.parent = meshes.main;
+					// cloudsMesh.isPickable = false;
 					
-					const cloudsDiffuse = new Texture((new URL('../assets/generated_planets/planet1_toxic/clouds.png', import.meta.url)).pathname, scene);
+					// Texture created with http://wwwtyro.github.io/procedural.js/planet1/ using seed Njg2NDM3MzE4Nzk5OQ and tweaked vals
+					// const cloudsDiffuse = new Texture((new URL('../assets/generated_planets/planet2_ertaale/fair_clouds_8k.jpg', import.meta.url)).pathname, scene);
 					
-					const cloudsMat = new PBRMaterial(`${solarBodyConfig.inspectorName}_cloudsMat`, scene);
-					cloudsMat.opacityTexture = cloudsDiffuse;
-					cloudsMat.metallic = 0.0;
-					cloudsMat.roughness = 1.0;
-					cloudsMesh.material = cloudsMat;
+					// const cloudsMat = new PBRMaterial(`${solarBodyConfig.inspectorName}_cloudsMat`, scene);
+					// cloudsMat.opacityTexture = cloudsDiffuse;
+					// cloudsMat.metallic = 0.0;
+					// cloudsMat.roughness = 1.0;
+					// cloudsMesh.material = cloudsMat;
 					
-					// Rotate the cloud cover slowly
-					const cloudRotationSpeed = 0.001;
-					this.onTickCallbacks.push((_delta, animationRatio) =>
-						cloudsMesh.rotate(new Vector3(0, -1, 0), cloudRotationSpeed * animationRatio));
+					// // Rotate the cloud cover slowly
+					// const cloudRotationSpeed = 0.0002;
+					// this.onTickCallbacks.push((_delta, animationRatio) =>
+					// 	cloudsMesh.rotate(new Vector3(0, -1, 0), cloudRotationSpeed * animationRatio));
 					
 				},
 			},
