@@ -215,11 +215,11 @@ export class Renderer {
 		setImmediate(() => scene.collisionsEnabled = true);
 		
 		// HDR environment texture
-		const hdrEnvironmentTextureUrl = (new URL("../assets/skybox/skybox.env", import.meta.url));
+		const hdrEnvironmentTextureUrl = (new URL("../assets/skybox/skybox_equirectangular-32.env", import.meta.url));
 		const hdrEnvironmentTexture = CubeTexture.CreateFromPrefilteredData(hdrEnvironmentTextureUrl.pathname, scene);
-		hdrEnvironmentTexture.level = 2;
+		// hdrEnvironmentTexture.level = 2;
 		scene.environmentTexture = hdrEnvironmentTexture;
-		scene.environmentIntensity = 0.04;
+		scene.environmentIntensity = 0.75;
 		
 		// Solar system transform node for local positioning
 		const solarSystemTransformNode = new TransformNode('solarSystem', scene);
@@ -250,12 +250,12 @@ export class Renderer {
 		skybox.renderingGroupId = 0;
 		skybox.layerMask = 0x10000000;
 		
-		const skyboxHdrConvertedEnvUrl = new URL('../assets/skybox/skybox.env', import.meta.url);
+		const skyboxHdrConvertedEnvUrl = new URL('../assets/skybox/skybox_equirectangular-32.env', import.meta.url);
 		const skyboxCubeTexture = CubeTexture.CreateFromPrefilteredData(skyboxHdrConvertedEnvUrl.pathname, scene);
-		skyboxCubeTexture.level = 0.25;
+		skyboxCubeTexture.level = 0.6;
 		skyboxCubeTexture.coordinatesMode = Texture.SKYBOX_MODE;
 		
-		const skyboxMaterial = new StandardMaterial("skyBox", scene);
+		const skyboxMaterial = new StandardMaterial("skyBoxMat", scene);
 		skyboxMaterial.backFaceCulling = false;
 		skyboxMaterial.reflectionTexture = skyboxCubeTexture;
 		skyboxMaterial.disableLighting = true;
