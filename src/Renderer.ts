@@ -128,13 +128,15 @@ export class Renderer {
 	hemiLight2: null | HemisphericLight = null;
 	godRays: null | VolumetricLightScatteringPostProcess = null;
 	
+	initialDeviceRatio: number = 1 / window.devicePixelRatio;
 	currentlyFocusedPlanet: null | PlanetMeta = null;
 	
 	onTickCallbacks: ((delta: number, animationRatio: number) => void)[] = [];
 	
 	constructor(public canvasEl: HTMLCanvasElement) {
 		
-		this.engine = new Engine(canvasEl, true, {stencil: true}, true);
+		this.engine = new Engine(canvasEl, true, {stencil: true}, false);
+		this.engine.setHardwareScalingLevel(this.initialDeviceRatio);
 		this.engine.enableOfflineSupport = false;
 		
 		const scene = new Scene(this.engine);
@@ -1050,7 +1052,7 @@ export class Renderer {
 	
 	autoOptimizeScene(scene: Scene, camera: ArcRotateCamera) {
 		
-		const targetFps = 30;
+		const targetFps = 50;
 		const optimizationStartDelayMs = 1500;
 		/** Amount of time to wait between optimization passes */
 		const trackerDuration = 1000;
@@ -1059,7 +1061,7 @@ export class Renderer {
 		const options: SceneOptimizerOptions = SceneOptimizerOptions.ModerateDegradationAllowed(targetFps);
 		options.trackerDuration = trackerDuration;
 		
-		const numberOfCustomOptimizations = 3;
+		const numberOfCustomOptimizations = 5;
 		let currentCustomOptimizationI = 0;
 		
 		options.optimizations = options.optimizations
@@ -1073,6 +1075,26 @@ export class Renderer {
 				o.priority = i + numberOfCustomOptimizations;
 				return o;
 			});
+		
+		// Roughly tweak hardware scaling - first pass
+		options.addCustomOptimization(
+			() => {
+				this.engine.setHardwareScalingLevel(this.initialDeviceRatio * 1.5);
+				return true;
+			},
+			() => 'Reduce resolution - first pass',
+			currentCustomOptimizationI++
+		);
+		
+		// Roughly tweak hardware scaling - second pass
+		options.addCustomOptimization(
+			() => {
+				this.engine.setHardwareScalingLevel(this.initialDeviceRatio * 2);
+				return true;
+			},
+			() => 'Reduce resolution - second pass',
+			currentCustomOptimizationI++
+		);
 		
 		// Disable volumetric lighting and boost star material
 		options.addCustomOptimization(
