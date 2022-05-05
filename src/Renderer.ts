@@ -175,7 +175,7 @@ export class Renderer {
 		camera.checkCollisions = true;
 		
 		// Explore camera
-		const exploreCamera = new ArcRotateCamera("exploreCamera", Math.PI * 0.5, Math.PI / 2, 3.4641, Vector3.Zero(), scene);
+		const exploreCamera = new ArcRotateCamera("exploreCamera", Math.PI * 1.5, Math.PI / 2, 3.4641, Vector3.Zero(), scene);
 		this.exploreCamera = exploreCamera;
 		
 		// Manually set up rotation on explore camera. There is a autoRotate behavior but it doesn't work as expected with multiple cameras.
@@ -229,7 +229,7 @@ export class Renderer {
 		this.solarSystemTransformNode = solarSystemTransformNode;
 		
 		// Add light (sun)
-		const sunLight = new PointLight("pointLight", new Vector3(50, 50, -10), scene);
+		const sunLight = new PointLight("pointLight", Vector3.Zero(), scene);
 		sunLight.intensity = 50000;
 		sunLight.diffuse = Color3.FromHexString('#9271D1'); // #FFD8A3
 		sunLight.parent = solarSystemTransformNode;
@@ -271,14 +271,18 @@ export class Renderer {
 		this.initGuiWip();
 		this.initParticles(scene);
 		this.registerGalaxyScaling(camera, solarSystemTransformNode);
+		this.registerPlanetOrbitRotation();
 		this.autoOptimizeScene(scene, camera);
 		Renderer.initJumpToCameraPosition(scene, camera, exploreCamera, solarSystemTransformNode, 1);
 		
 		// Set up collisions on meshes
 		this.solarBodies.forEach(solarBody => solarBody.mesh.checkCollisions = true);
 		
-		// Parent the explore camera
-		exploreCamera.parent = this.solarBodies.filter(solarBody => solarBody.type === 'planet')[0].mesh;
+		// Parent the cameras
+		const firstPlanet = this.solarBodies.filter(solarBody => solarBody.type === 'planet')[0].mesh;
+		exploreCamera.parent = firstPlanet;
+		// camera.parent = firstPlanet;
+		// camera.target = Vector3.Zero();
 		
 		// Show inspector on dev
 		if (process.env.NODE_ENV === 'development') {
@@ -437,8 +441,9 @@ export class Renderer {
 				parent: solarSystemTransformNode,
 				postCreateCb: meshes => {
 					const allMeshes = [meshes.main, ...meshes.lods];
-					allMeshes.forEach(mesh => highlightLayer.addMesh(mesh, new Color3(0.2, 0.4, 1).scale(0.3)));
+					meshes.main.position.addInPlace(new Vector3(50, 50, -10));
 					meshes.main.rotation.addInPlace(new Vector3(0, Math.PI * 0.12, Math.PI * 0.06));
+					allMeshes.forEach(mesh => highlightLayer.addMesh(mesh, new Color3(0.2, 0.4, 1).scale(0.3)));
 				},
 			},
 			{
@@ -882,6 +887,61 @@ export class Renderer {
 			}
 			
 		});
+	}
+	
+	registerPlanetOrbitRotation() {
+		
+		const sunMesh = this.solarBodies.filter(solarBody => solarBody.type === 'star')[0]?.mesh;
+		
+		this.solarBodies.filter(solarBody => solarBody.type === 'planet').forEach(planetMeta => {
+			
+			const { mesh: planetMesh } = planetMeta;
+			
+			// How fast the rotation will be
+			const fullRotationsPerSecond = 0.001; // TODO: Change this per planet based on distance from sun
+			
+			// Initial calculations to get the sin and cos
+			const distanceVector = planetMesh.position.subtract(sunMesh.position);
+			const distanceVectorLength = distanceVector.length();
+			const currentDirectionVector = distanceVector.normalizeToNew();
+			let currentCosPi = Math.acos(currentDirectionVector.x);
+			let currentSinPi = Math.asin(currentDirectionVector.z);
+			let currentTiltPi = Math.asin(currentDirectionVector.y);
+			
+			this.onTickCallbacks.push((_delta, animationRatio) => {
+				
+				const piStep = ((Math.PI * 2) / 60) * fullRotationsPerSecond;
+				
+				// Prep
+				// const animationRatio = scene.getAnimationRatio();
+				const animationPiStep = piStep * animationRatio;
+				
+				// x cos
+				const newCosPi = currentCosPi + animationPiStep;
+				const newCos = Math.cos(newCosPi);
+				
+				// z sin
+				const newSinPi = currentSinPi + animationPiStep;
+				const newSin = Math.sin(newSinPi);
+				
+				// y sin
+				const newTiltPi = currentTiltPi + animationPiStep;
+				const newTilt = Math.sin(newTiltPi);
+				
+				// Update planet position based on new position on the circle (sin & cos)
+				planetMesh.position.x = (newCos * distanceVectorLength) + sunMesh.position.x;
+				planetMesh.position.y = (newTilt * distanceVectorLength) + sunMesh.position.y;
+				planetMesh.position.z = (newSin * distanceVectorLength) + sunMesh.position.z;
+				
+				// Save values for next tick
+				currentCosPi = newCosPi;
+				currentSinPi = newSinPi;
+				currentTiltPi = newTiltPi;
+				
+			});
+			
+		});
+		
 	}
 	
 	autoOptimizeScene(scene: Scene, camera: ArcRotateCamera) {
