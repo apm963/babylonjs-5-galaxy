@@ -419,7 +419,7 @@ export class Renderer {
 					// Textures grabbed from https://sites.google.com/site/mapsandsuch/maps-of-fictional-worlds and modified as needed
 					// Other ways to generate online are listed here https://blender.stackexchange.com/questions/31424/planet-texture-generator
 					const planet3Textures = {
-						diffuse: new Texture((new URL('../assets/generated_planets/planet2_ertaale/ertaale_ast_2006036_lrg_blue.jpg', import.meta.url)).pathname, scene),
+						diffuse: new Texture((new URL('../assets/generated_planets/planet2_ertaale/ertaale_ast_2006036_lrg_blue.jpg?as=webp', import.meta.url)).pathname, scene),
 					};
 					mat.albedoTexture = planet3Textures.diffuse;
 					mat.metallic = 0.0; // Set these to 1.0 to use metallic & roughness from texture
@@ -480,8 +480,8 @@ export class Renderer {
 					// Textures grabbed from https://sites.google.com/site/mapsandsuch/maps-of-fictional-worlds and modified as needed
 					// Other ways to generate online are listed here https://blender.stackexchange.com/questions/31424/planet-texture-generator
 					const planet3Textures = {
-						diffuse: new Texture((new URL('../assets/generated_planets/planet2_ertaale/ertaale_ast_2006036_lrg.jpg', import.meta.url)).pathname, scene),
-						normal: new Texture((new URL('../assets/generated_planets/planet2_ertaale/NormalMap.png', import.meta.url)).pathname, scene),
+						diffuse: new Texture((new URL('../assets/generated_planets/planet2_ertaale/ertaale_ast_2006036_lrg.jpg?as=webp', import.meta.url)).pathname, scene),
+						normal: new Texture((new URL('../assets/generated_planets/planet2_ertaale/NormalMap.png?as=webp', import.meta.url)).pathname, scene),
 					};
 					mat.albedoTexture = planet3Textures.diffuse;
 					mat.bumpTexture = planet3Textures.normal;
@@ -514,8 +514,8 @@ export class Renderer {
 					// Textures grabbed from https://sites.google.com/site/mapsandsuch/maps-of-fictional-worlds and modified as needed
 					// Other ways to generate online are listed here https://blender.stackexchange.com/questions/31424/planet-texture-generator
 					const planet3Textures = {
-						diffuse: new Texture((new URL('../assets/generated_planets/planet3_dgnyre/dgnyre.jpg', import.meta.url)).pathname, scene),
-						normal: new Texture((new URL('../assets/generated_planets/planet3_dgnyre/NormalMap.png', import.meta.url)).pathname, scene),
+						diffuse: new Texture((new URL('../assets/generated_planets/planet3_dgnyre/dgnyre.jpg?as=webp', import.meta.url)).pathname, scene),
+						normal: new Texture((new URL('../assets/generated_planets/planet3_dgnyre/NormalMap.png?as=webp', import.meta.url)).pathname, scene),
 					};
 					mat.albedoTexture = planet3Textures.diffuse;
 					mat.bumpTexture = planet3Textures.normal;
@@ -545,7 +545,7 @@ export class Renderer {
 					cloudsMesh.isPickable = false;
 					
 					// From https://sites.google.com/site/mapsandsuch/maps-of-fictional-worlds
-					const cloudsDiffuse = new Texture((new URL('../assets/generated_planets/planet3_dgnyre/dgnyre-clouds.png', import.meta.url)).pathname, scene);
+					const cloudsDiffuse = new Texture((new URL('../assets/generated_planets/planet3_dgnyre/dgnyre-clouds.png?as=webp', import.meta.url)).pathname, scene);
 					
 					const cloudsMat = new PBRMaterial(`${solarBodyConfig.inspectorName}_cloudsMat`, scene);
 					cloudsMat.opacityTexture = cloudsDiffuse;
