@@ -472,16 +472,11 @@ export class Renderer {
 					const planet3Textures = {
 						diffuse: new Texture((new URL('../assets/generated_planets/planet2_ertaale/ertaale_ast_2006036_lrg.jpg', import.meta.url)).pathname, scene),
 						normal: new Texture((new URL('../assets/generated_planets/planet2_ertaale/NormalMap.png', import.meta.url)).pathname, scene),
-						// roughness: new Texture((new URL('../assets/generated_planets/planet2_ertaale/roughness_channel_corrected.jpg', import.meta.url)).pathname, scene),
 					};
 					mat.albedoTexture = planet3Textures.diffuse;
 					mat.bumpTexture = planet3Textures.normal;
 					mat.metallic = 0.0; // Set these to 1.0 to use metallic & roughness from texture
 					mat.roughness = 1.0;
-					// mat.metallicTexture = planet3Textures.roughness;
-					// mat.useMetallnessFromMetallicTextureBlue = true;
-					// mat.useRoughnessFromMetallicTextureGreen = true; // Normally we'd set this to true and Alpha to false but I don't want this super shiny so here we are.
-					// mat.useRoughnessFromMetallicTextureAlpha = false;
 					
 					return mat;
 				})(),
