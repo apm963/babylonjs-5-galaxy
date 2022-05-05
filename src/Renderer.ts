@@ -175,9 +175,11 @@ export class Renderer {
 		camera.checkCollisions = true;
 		
 		// Explore camera
-		const exploreCamera = new ArcRotateCamera("exploreCamera", -Math.PI / 2, Math.PI / 2, 10, Vector3.Zero(), scene);
+		const exploreCamera = new ArcRotateCamera("exploreCamera", -Math.PI / 2, Math.PI / 2, 3.4641, Vector3.Zero(), scene);
 		this.exploreCamera = exploreCamera;
-		exploreCamera.useAutoRotationBehavior = true;
+		
+		// Manually set up rotation on explore camera. There is a autoRotate behavior but it doesn't work as expected with multiple cameras.
+		this.onTickCallbacks.push((_delta, animationRatio) => exploreCamera.alpha -= animationRatio * 0.002);
 		
 		if (this.useOrthographicExploreCamera) {
 			exploreCamera.mode = Camera.ORTHOGRAPHIC_CAMERA;
