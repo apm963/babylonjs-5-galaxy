@@ -612,7 +612,7 @@ export class Renderer {
 			{
 				type: 'planet',
 				inspectorName: 'planet5',
-				friendlyName: 'Stan',
+				friendlyName: 'Beta Stan VI',
 				baseConfig: {diameter: 3, segments: 32},
 				lodConfig: {
 					useLODScreenCoverage: true,
