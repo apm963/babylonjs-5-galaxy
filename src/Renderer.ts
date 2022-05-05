@@ -165,6 +165,7 @@ export class Renderer {
 		// Bind mouse events on the canvas to be associated with this camera
 		camera.attachControl(engine._workingCanvas, true);
 		camera.lowerRadiusLimit = 3;
+		camera.upperRadiusLimit = 400;
 		camera.viewport = new Viewport(0, 0, 1, 1);
 		camera.layerMask = 0x30000000;  // Set layer mask so that it can see 0x10000000 and 0x20000000 objects
 		
