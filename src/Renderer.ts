@@ -1004,7 +1004,8 @@ export class Renderer {
 			const { mesh: planetMesh } = planetMeta;
 			
 			// How fast the rotation will be
-			const fullRotationsPerSecond = 0.001; // TODO: Change this per planet based on distance from sun
+			const distanceToSun = Vector3.Distance(planetMesh.position, (sunMesh.parent as PointLight).position);
+			const fullOrbitsPerSecond = 0.1 * (1 / distanceToSun);
 			
 			// Initial calculations to get the sin and cos
 			const distanceVector = planetMesh.position.subtract(sunMesh.position);
@@ -1016,7 +1017,7 @@ export class Renderer {
 			
 			this.onTickCallbacks.push((_delta, animationRatio) => {
 				
-				const piStep = ((Math.PI * 2) / 60) * fullRotationsPerSecond;
+				const piStep = ((Math.PI * 2) / 60) * fullOrbitsPerSecond;
 				
 				// Prep
 				// const animationRatio = scene.getAnimationRatio();
