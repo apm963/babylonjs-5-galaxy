@@ -414,16 +414,26 @@ export class Renderer {
 					],
 				},
 				material: (() => {
-					const mat = new PBRMetallicRoughnessMaterial('tempMat', scene);
-					mat.metallic = 0.5;
-					mat.roughness = 0.1;
-					mat.baseColor = Color3.Blue();
+					const mat = new PBRMaterial('tempMat', scene);
+					
+					// Textures grabbed from https://sites.google.com/site/mapsandsuch/maps-of-fictional-worlds and modified as needed
+					// Other ways to generate online are listed here https://blender.stackexchange.com/questions/31424/planet-texture-generator
+					const planet3Textures = {
+						diffuse: new Texture((new URL('../assets/generated_planets/planet2_ertaale/ertaale_ast_2006036_lrg_blue.jpg', import.meta.url)).pathname, scene),
+					};
+					mat.albedoTexture = planet3Textures.diffuse;
+					mat.metallic = 0.0; // Set these to 1.0 to use metallic & roughness from texture
+					mat.roughness = 1.0;
+					// mat.directIntensity = 2;
+					mat.specularIntensity = 0.27;
+					
 					return mat;
 				})(),
 				parent: solarSystemTransformNode,
 				postCreateCb: meshes => {
 					const allMeshes = [meshes.main, ...meshes.lods];
 					allMeshes.forEach(mesh => highlightLayer.addMesh(mesh, new Color3(0.2, 0.4, 1).scale(0.3)));
+					meshes.main.rotation.addInPlace(new Vector3(0, Math.PI * 0.12, Math.PI * 0.06));
 				},
 			},
 			{
