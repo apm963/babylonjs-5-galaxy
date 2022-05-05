@@ -420,8 +420,11 @@ export class Renderer {
 					// Other ways to generate online are listed here https://blender.stackexchange.com/questions/31424/planet-texture-generator
 					const planet3Textures = {
 						diffuse: new Texture((new URL('../assets/generated_planets/planet2_ertaale/ertaale_ast_2006036_lrg_blue.jpg?as=webp', import.meta.url)).pathname, scene),
+						normal: new Texture((new URL('../assets/generated_planets/planet2_ertaale/NormalMap-Low.png?as=webp', import.meta.url)).pathname, scene),
 					};
+					planet3Textures.normal.level = 1.6;
 					mat.albedoTexture = planet3Textures.diffuse;
+					mat.bumpTexture = planet3Textures.normal;
 					mat.metallic = 0.0; // Set these to 1.0 to use metallic & roughness from texture
 					mat.roughness = 1.0;
 					// mat.directIntensity = 2;
@@ -453,6 +456,9 @@ export class Renderer {
 					mat.metallic = 0.5;
 					mat.roughness = 0.3;
 					mat.baseColor = Color3.Teal();
+					const normal = new Texture((new URL('../assets/generated_planets/planet2_ertaale/NormalMap-Low.png?as=webp', import.meta.url)).pathname, scene);
+					normal.level = 0.25;
+					mat.normalTexture = normal;
 					return mat;
 				})(),
 				parent: solarSystemTransformNode,
