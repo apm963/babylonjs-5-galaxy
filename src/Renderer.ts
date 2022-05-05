@@ -1203,7 +1203,7 @@ export class Renderer {
 		};
 		
 		scene.onPointerMove = (e, pickingInfo) => {
-			if (pointerDown) {
+			if (pointerDown && e.pointerType !== 'touch') {
 				bodyMesh = null;
 				
 				killAnimations();
