@@ -128,6 +128,8 @@ export class Renderer {
 	hemiLight2: null | HemisphericLight = null;
 	godRays: null | VolumetricLightScatteringPostProcess = null;
 	
+	currentlyFocusedPlanet: null | PlanetMeta = null;
+	
 	onTickCallbacks: ((delta: number, animationRatio: number) => void)[] = [];
 	
 	constructor(public canvasEl: HTMLCanvasElement) {
@@ -274,15 +276,16 @@ export class Renderer {
 		this.registerGalaxyScaling(camera, solarSystemTransformNode);
 		this.registerPlanetOrbitRotation();
 		this.autoOptimizeScene(scene, camera);
-		Renderer.initJumpToCameraPosition(scene, camera, exploreCamera, solarSystemTransformNode, 1);
+		this.initJumpToCameraPosition(scene, camera, exploreCamera, solarSystemTransformNode, 1);
 		
 		// Set up collisions on meshes
 		this.solarBodies.forEach(solarBody => solarBody.mesh.checkCollisions = true);
 		
 		// Parent the cameras
-		const firstPlanet = this.solarBodies.filter(solarBody => solarBody.type === 'planet')[0].mesh;
-		exploreCamera.parent = firstPlanet;
-		// camera.parent = firstPlanet;
+		const firstPlanetMeta = this.solarBodies.filter(solarBody => solarBody.type === 'planet')[0];
+		this.currentlyFocusedPlanet = firstPlanetMeta;
+		exploreCamera.parent = firstPlanetMeta.mesh;
+		// camera.parent = firstPlanetMeta.mesh;
 		// camera.target = Vector3.Zero();
 		
 		// Show inspector on dev
@@ -1125,7 +1128,7 @@ export class Renderer {
 		
 	}
 	
-	static initJumpToCameraPosition(scene: Scene, camera: ArcRotateCamera, exploreCamera: ArcRotateCamera, solarSystemTransformNode: TransformNode, animationDurationSeconds: number = 1) {
+	initJumpToCameraPosition(scene: Scene, camera: ArcRotateCamera, exploreCamera: ArcRotateCamera, solarSystemTransformNode: TransformNode, animationDurationSeconds: number = 1) {
 		
 		let pointerDown = false;
 		let animations: (Animatable | null)[] = [];
@@ -1213,6 +1216,15 @@ export class Renderer {
 				console.log('Not changing current focused mesh because we are in galaxy scaling mode');
 				return;
 			}
+			
+			const correspondingSolarBody = this.solarBodies.filter(solarBody => solarBody.mesh === mesh)[0];
+			
+			if (this.currentlyFocusedPlanet === correspondingSolarBody) {
+				console.log('Already focused on this mesh');
+				return;
+			}
+			
+			this.currentlyFocusedPlanet = correspondingSolarBody;
 			
 			const point = mesh.absolutePosition;
 			
