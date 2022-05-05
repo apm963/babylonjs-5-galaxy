@@ -988,8 +988,6 @@ export class Renderer {
 			// const point = pickingInfo.pickedPoint;
 			let mesh = pickingInfo.pickedMesh;
 			
-			console.log(mesh);
-			
 			if (!mesh) {
 				// From here https://forum.babylonjs.com/t/pointer-through-multiple-cameras/10467/5
 				if (!pickingInfo.hit) {
@@ -1005,6 +1003,10 @@ export class Renderer {
 					// Nothing to do here
 					return;
 				}
+			}
+			
+			if (process.env.NODE_ENV === 'development') {
+				console.log(mesh);
 			}
 			
 			// Only allow jumping if we are not in galaxy scaling mode
