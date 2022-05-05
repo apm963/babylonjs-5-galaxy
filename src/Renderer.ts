@@ -40,6 +40,7 @@ import {
 	Viewport,
 	VolumetricLightScatteringPostProcess,
 	Animatable,
+	AssetsManager,
 } from "@babylonjs/core";
 
 import {
@@ -142,24 +143,58 @@ export class Renderer {
 		const scene = new Scene(this.engine);
 		scene.clearColor = Color3.Gray().scale(0.5).toColor4();
 		
-		this.initScene(this.engine, scene);
+		// this.engine.displayLoadingUI();
 		
-		// Start render loop
-		this.engine.runRenderLoop(() => {
-			// Get numbers
-			const delta = this.engine.getDeltaTime();
-			const animationRatio = scene.getAnimationRatio();
+		this.initAssets(scene).then(() => {
 			
-			// Run callbacks
-			this.onTickCallbacks.forEach(onTickCallback => onTickCallback(delta, animationRatio));
+			this.initScene(this.engine, scene);
 			
-			// Render the scene
-			scene.render();
+			// Start render loop
+			this.engine.runRenderLoop(() => {
+				// Get numbers
+				const delta = this.engine.getDeltaTime();
+				const animationRatio = scene.getAnimationRatio();
+				
+				// Run callbacks
+				this.onTickCallbacks.forEach(onTickCallback => onTickCallback(delta, animationRatio));
+				
+				// Render the scene
+				scene.render();
+			});
+			
+			// Handle window resize events
+			window.addEventListener('resize', () => this.engine.resize());
+			
 		});
 		
-		// Handle window resize events
-		window.addEventListener('resize', () => this.engine.resize());
+	}
+	
+	async initAssets(scene: Scene) {
+		const assetsManager = new AssetsManager(scene);
 		
+		// Define assets we are going to load. When Babylon.js encounters these URLs again, it will use the pre-loaded cached textures without duplicating work.
+		const tasks = {
+			sun: assetsManager.addTextureTask('sun', 'https://images.pexels.com/photos/2832382/pexels-photo-2832382.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'),
+			ertaale_albedo_blue: assetsManager.addTextureTask('ertaale_albedo_blue', (new URL('../assets/generated_planets/planet2_ertaale/ertaale_ast_2006036_lrg_blue.jpg?as=webp', import.meta.url)).pathname),
+			ertaale_bump_low: assetsManager.addTextureTask('ertaale_bump_low', (new URL('../assets/generated_planets/planet2_ertaale/NormalMap-Low.png?as=webp', import.meta.url)).pathname),
+			ertaale_albedo_red: assetsManager.addTextureTask('ertaale_albedo_red', (new URL('../assets/generated_planets/planet2_ertaale/ertaale_ast_2006036_lrg.jpg?as=webp', import.meta.url)).pathname),
+			ertaale_bump: assetsManager.addTextureTask('ertaale_bump', (new URL('../assets/generated_planets/planet2_ertaale/NormalMap.png?as=webp', import.meta.url)).pathname),
+			dgnyre_albedo: assetsManager.addTextureTask('dgnyre_albedo', (new URL('../assets/generated_planets/planet3_dgnyre/dgnyre.jpg?as=webp', import.meta.url)).pathname),
+			dgnyre_bump: assetsManager.addTextureTask('dgnyre_bump', (new URL('../assets/generated_planets/planet3_dgnyre/NormalMap.png?as=webp', import.meta.url)).pathname),
+			dgnyre_clouds: assetsManager.addTextureTask('dgnyre_clouds', (new URL('../assets/generated_planets/planet3_dgnyre/dgnyre-clouds.png?as=webp', import.meta.url)).pathname),
+			iceworld_albedo: assetsManager.addTextureTask('iceworld_albedo', (new URL('../assets/generated_planets/planet4_stan/iceworld2.jpg?as=webp', import.meta.url)).pathname),
+			iceworld_bump: assetsManager.addTextureTask('iceworld_bump', (new URL('../assets/generated_planets/planet4_stan/NormalMap.png?as=webp', import.meta.url)).pathname),
+			toxic_clouds: assetsManager.addTextureTask('toxic_clouds', (new URL('../assets/generated_planets/planet1_toxic/clouds.png', import.meta.url)).pathname),
+			particle_flare: assetsManager.addTextureTask('particle_flare', "https://playground.babylonjs.com/textures/flare.png"),
+		};
+		
+		// Bind on finish to resolve a Promise
+		const loaderPromise = new Promise(resolve => assetsManager.onFinish = (tasks) => resolve(true));
+		
+		// Start asset loading
+		assetsManager.load();
+		
+		return loaderPromise;
 	}
 	
 	initScene(engine: Engine, scene: Scene) {
