@@ -288,6 +288,26 @@ export class Renderer {
 		// camera.parent = firstPlanetMeta.mesh;
 		// camera.target = Vector3.Zero();
 		
+		this.onTickCallbacks.push(() => {
+			
+			// Null safe check
+			if (!this.currentlyFocusedPlanet) {
+				return;
+			}
+			
+			// Check for galaxy mode
+			if (!solarSystemTransformNode.scaling.equalsWithEpsilon(Vector3.One(), 0.01)) {
+				// Galaxy mode
+				return;
+			}
+			
+			camera.target = this.currentlyFocusedPlanet.mesh.absolutePosition;
+			
+			if (solarSystemTransformNode.scaling.equalsWithEpsilon(Vector3.One(), 0.01)) {
+				solarSystemTransformNode.setPivotPoint(camera.target);
+			}
+		});
+		
 		// Show inspector on dev
 		if (process.env.NODE_ENV === 'development') {
 			scene.debugLayer.show({
