@@ -174,7 +174,7 @@ export class Renderer {
 		
 		// Define assets we are going to load. When Babylon.js encounters these URLs again, it will use the pre-loaded cached textures without duplicating work.
 		const tasks = {
-			sun: assetsManager.addTextureTask('sun', 'https://images.pexels.com/photos/2832382/pexels-photo-2832382.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'),
+			sun: assetsManager.addTextureTask('sun', (new URL('../assets/pexels-photo-2832382.jpeg?as=webp', import.meta.url)).pathname),
 			ertaale_albedo_blue: assetsManager.addTextureTask('ertaale_albedo_blue', (new URL('../assets/generated_planets/planet2_ertaale/ertaale_ast_2006036_lrg_blue.jpg?as=webp', import.meta.url)).pathname),
 			ertaale_bump_low: assetsManager.addTextureTask('ertaale_bump_low', (new URL('../assets/generated_planets/planet2_ertaale/NormalMap-Low.png?as=webp', import.meta.url)).pathname),
 			ertaale_albedo_red: assetsManager.addTextureTask('ertaale_albedo_red', (new URL('../assets/generated_planets/planet2_ertaale/ertaale_ast_2006036_lrg.jpg?as=webp', import.meta.url)).pathname),

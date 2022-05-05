@@ -14,15 +14,13 @@ It features the following techniques:
 - [2D GUI](https://doc.babylonjs.com/divingDeeper/gui/gui)
 - [Collision handling](https://doc.babylonjs.com/divingDeeper/mesh/interactions/mesh_intersect)
 - [Level Of Detail (LOD)](https://doc.babylonjs.com/divingDeeper/mesh/LOD)
-- TODO: More!
-
-TODO features:
-- Use inverse scene optimizer to *add* god rays and bloom and chromatic abberation until scene drops below target FPS
+- ...and more!
 
 Credits:
 
 - Skybox created with [https://tools.wwwtyro.net/space-3d/index.html](https://tools.wwwtyro.net/space-3d/index.html)
 - Some assets from [https://sites.google.com/site/mapsandsuch/maps-of-fictional-worlds](https://sites.google.com/site/mapsandsuch/maps-of-fictional-worlds) - Landon Lemmon
+- Sun [god ray material inspiration](https://codepen.io/hiteshsahu/pen/YzYJMaP?editors=0010) and [texture](https://images.pexels.com/photos/2832382/pexels-photo-2832382.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2)
 
 ## Develop
 
