@@ -19,6 +19,11 @@ It features the following techniques:
 TODO features:
 - Use inverse scene optimizer to *add* god rays and bloom and chromatic abberation until scene drops below target FPS
 
+Credits:
+
+- Skybox created with [https://tools.wwwtyro.net/space-3d/index.html](https://tools.wwwtyro.net/space-3d/index.html)
+- Some assets from [https://sites.google.com/site/mapsandsuch/maps-of-fictional-worlds](https://sites.google.com/site/mapsandsuch/maps-of-fictional-worlds) - Landon Lemmon
+
 ## Develop
 
 Run directly
