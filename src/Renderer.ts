@@ -526,7 +526,7 @@ export class Renderer {
 				parent: solarSystemTransformNode,
 				postCreateCb: (meshes, solarBodyConfig) => {
 					meshes.main.position.addInPlace(new Vector3(-200, 20, 100));
-					meshes.main.rotation.addInPlace(new Vector3(0, 0, -(Math.PI * 0.12)));
+					meshes.main.rotation.addInPlace(new Vector3(0, 0, (Math.PI * 0.21)));
 					
 					// Set up cloud layer
 					const cloudHeightPerc = 0.05;
