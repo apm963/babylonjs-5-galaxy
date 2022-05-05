@@ -175,7 +175,7 @@ export class Renderer {
 		camera.checkCollisions = true;
 		
 		// Explore camera
-		const exploreCamera = new ArcRotateCamera("exploreCamera", -Math.PI / 2, Math.PI / 2, 3.4641, Vector3.Zero(), scene);
+		const exploreCamera = new ArcRotateCamera("exploreCamera", Math.PI * 0.5, Math.PI / 2, 3.4641, Vector3.Zero(), scene);
 		this.exploreCamera = exploreCamera;
 		
 		// Manually set up rotation on explore camera. There is a autoRotate behavior but it doesn't work as expected with multiple cameras.
