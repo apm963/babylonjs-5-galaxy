@@ -1185,13 +1185,9 @@ export class Renderer {
 		};
 		
 		scene.onPointerMove = (e, pickingInfo) => {
-			const movement = Math.abs(e.movementX) + Math.abs(e.movementY);
-			
-			if (movement > 10) {
-				bodyMesh = null;
-			}
-			
 			if (pointerDown) {
+				bodyMesh = null;
+				
 				killAnimations();
 			}
 		};
