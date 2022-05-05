@@ -39,6 +39,7 @@ import {
 	Vector3,
 	Viewport,
 	VolumetricLightScatteringPostProcess,
+	Animatable,
 } from "@babylonjs/core";
 
 import {
@@ -306,6 +307,10 @@ export class Renderer {
 		defaultPipe.imageProcessing.toneMappingEnabled = true;
 		defaultPipe.imageProcessing.toneMappingType = 1;
 		
+		defaultPipe.imageProcessing.vignetteEnabled = true;
+		defaultPipe.imageProcessing.vignetteWeight = 1.5;
+		defaultPipe.imageProcessing.vignetteCameraFov = 0.6;
+		
 		defaultPipe.bloomEnabled = true;
 		defaultPipe.bloomThreshold = 0.5;
 		defaultPipe.bloomWeight = 0.7;
@@ -315,6 +320,12 @@ export class Renderer {
 		defaultPipe.chromaticAberrationEnabled = true;
 		defaultPipe.chromaticAberration.aberrationAmount = 30;
 		defaultPipe.chromaticAberration.radialIntensity = 0.8;
+		
+		defaultPipe.glowLayerEnabled = true;
+		if (defaultPipe.glowLayer) {
+			defaultPipe.glowLayer.blurKernelSize = 96;
+			defaultPipe.glowLayer.intensity = 0.5;
+		}
 	}
 	
 	initPlanets(scene: Scene, camera: ArcRotateCamera, solarSystemTransformNode: TransformNode) {
@@ -332,7 +343,7 @@ export class Renderer {
 				type: 'star',
 				inspectorName: 'sun',
 				friendlyName: 'Sun',
-				baseConfig: {diameter: 20, segments: 32},
+				baseConfig: {diameter: 40, segments: 32},
 				lodConfig: useGodRays ? undefined : {
 					useLODScreenCoverage: true,
 					levels: [
@@ -559,6 +570,76 @@ export class Renderer {
 					
 					// From https://sites.google.com/site/mapsandsuch/maps-of-fictional-worlds
 					const cloudsDiffuse = new Texture((new URL('../assets/generated_planets/planet3_dgnyre/dgnyre-clouds.png?as=webp', import.meta.url)).pathname, scene);
+					
+					const cloudsMat = new PBRMaterial(`${solarBodyConfig.inspectorName}_cloudsMat`, scene);
+					cloudsMat.opacityTexture = cloudsDiffuse;
+					cloudsMat.metallic = 0.0;
+					cloudsMat.roughness = 1.0;
+					cloudsMesh.material = cloudsMat;
+					
+					// Rotate the cloud cover slowly
+					const cloudRotationSpeed = 0.0002;
+					this.onTickCallbacks.push((_delta, animationRatio) =>
+						cloudsMesh.rotate(new Vector3(0, -1, 0), cloudRotationSpeed * animationRatio));
+					
+				},
+			},
+			{
+				type: 'planet',
+				inspectorName: 'planet5',
+				friendlyName: 'Stan',
+				baseConfig: {diameter: 3, segments: 32},
+				lodConfig: {
+					useLODScreenCoverage: true,
+					levels: [
+						{level: 0.01, segments: 8},
+						{level: 0.001, segments: 3},
+					],
+				},
+				material: (() => {
+					const mat = new PBRMaterial('tempMat', scene);
+					
+					// Textures grabbed from https://sites.google.com/site/mapsandsuch/maps-of-fictional-worlds and modified as needed
+					// Other ways to generate online are listed here https://blender.stackexchange.com/questions/31424/planet-texture-generator
+					const planet3Textures = {
+						diffuse: new Texture((new URL('../assets/generated_planets/planet4_stan/iceworld2.jpg', import.meta.url)).pathname, scene),
+						normal: new Texture((new URL('../assets/generated_planets/planet4_stan/NormalMap.png', import.meta.url)).pathname, scene),
+						// roughness: new Texture((new URL('../assets/generated_planets/planet4_stan/roughness_channel_corrected.jpg', import.meta.url)).pathname, scene),
+					};
+					mat.albedoTexture = planet3Textures.diffuse;
+					mat.bumpTexture = planet3Textures.normal;
+					mat.metallic = 0.0; // Set these to 1.0 to use metallic & roughness from texture
+					mat.roughness = 1.0;
+					// mat.metallicTexture = planet3Textures.roughness;
+					// mat.useMetallnessFromMetallicTextureBlue = true;
+					// mat.useRoughnessFromMetallicTextureGreen = true; // Normally we'd set this to true and Alpha to false but I don't want this super shiny so here we are.
+					// mat.useRoughnessFromMetallicTextureAlpha = false;
+					
+					return mat;
+				})(),
+				parent: solarSystemTransformNode,
+				postCreateCb: (meshes, solarBodyConfig) => {
+					meshes.main.position.addInPlace(new Vector3(50, 20, -200));
+					meshes.main.rotation.addInPlace(new Vector3(0, 0, -(Math.PI * 0.12)));
+					
+					// Set up cloud layer
+					const cloudHeightPerc = 0.01;
+					const cloudsMesh = MeshBuilder.CreateSphere(
+						`${solarBodyConfig.inspectorName}_clouds`,
+						{
+							diameter: solarBodyConfig.baseConfig.diameter + (cloudHeightPerc * solarBodyConfig.baseConfig.diameter),
+							segments: solarBodyConfig.baseConfig.segments / 2
+						},
+						scene
+					);
+					cloudsMesh.renderingGroupId = 1;
+					cloudsMesh.layerMask = 0x10000000;
+					cloudsMesh.parent = meshes.main;
+					cloudsMesh.isPickable = false;
+					
+					// From https://sites.google.com/site/mapsandsuch/maps-of-fictional-worlds
+					const cloudsDiffuse = new Texture((new URL('../assets/generated_planets/planet1_toxic/clouds.png', import.meta.url)).pathname, scene);
+					cloudsDiffuse.level = 0.1;
 					
 					const cloudsMat = new PBRMaterial(`${solarBodyConfig.inspectorName}_cloudsMat`, scene);
 					cloudsMat.opacityTexture = cloudsDiffuse;
@@ -1046,11 +1127,56 @@ export class Renderer {
 	
 	static initJumpToCameraPosition(scene: Scene, camera: ArcRotateCamera, exploreCamera: ArcRotateCamera, solarSystemTransformNode: TransformNode, animationDurationSeconds: number = 1) {
 		
+		let pointerDown = false;
+		let animations: (Animatable | null)[] = [];
+		let bodyMesh: AbstractMesh | null = null;
+		
+		function killAnimations() {
+			animations.forEach(a => a?.stop());
+			animations = [];
+		}
+		
 		scene.onPointerDown = (e, pickingInfo) => {
+			pointerDown = true;
 			
-			// Check if Alt / Command key was pressed
-			if (!e.altKey) {
-				// Ignore this
+			let mesh = pickingInfo.pickedMesh;
+			
+			if (!mesh) {
+				// From here https://forum.babylonjs.com/t/pointer-through-multiple-cameras/10467/5
+				if (!pickingInfo.hit) {
+					let pi = scene.pick(e.x, e.y, null as any, false, camera);
+					if (pi?.pickedMesh) {
+						mesh = pi?.pickedMesh;
+					}
+					else {
+						return;
+					}
+				}
+				else {
+					// Nothing to do here
+					return;
+				}
+			}
+			
+			bodyMesh = mesh;
+		};
+		
+		scene.onPointerMove = (e, pickingInfo) => {
+			const movement = Math.abs(e.movementX) + Math.abs(e.movementY);
+			
+			if (movement > 10) {
+				bodyMesh = null;
+			}
+			
+			if (pointerDown) {
+				killAnimations();
+			}
+		};
+		
+		scene.onPointerUp = (e, pickingInfo) => {
+			pointerDown = false;
+			
+			if (!pickingInfo) {
 				return;
 			}
 			
@@ -1074,6 +1200,10 @@ export class Renderer {
 				}
 			}
 			
+			if (!bodyMesh || bodyMesh !== mesh) {
+				return;
+			}
+			
 			if (process.env.NODE_ENV === 'development') {
 				console.log(mesh);
 			}
@@ -1094,11 +1224,11 @@ export class Renderer {
 			const easingFunction = new QuinticEase();
 			easingFunction.setEasingMode(EasingFunction.EASINGMODE_EASEOUT);
 			
-			Animation.CreateAndStartAnimation('cameraMove1', camera, 'target', targetFps, animationDurationSeconds * targetFps, camera.target.clone(), point.clone(), Animation.ANIMATIONLOOPMODE_RELATIVE, easingFunction);
-			Animation.CreateAndStartAnimation('cameraMove2', camera, 'radius', targetFps, animationDurationSeconds * targetFps, camera.radius, camera.radius, Animation.ANIMATIONLOOPMODE_RELATIVE, easingFunction);
+			animations.push(Animation.CreateAndStartAnimation('cameraMove1', camera, 'target', targetFps, animationDurationSeconds * targetFps, camera.target.clone(), point.clone(), Animation.ANIMATIONLOOPMODE_RELATIVE, easingFunction));
+			animations.push(Animation.CreateAndStartAnimation('cameraMove2', camera, 'radius', targetFps, animationDurationSeconds * targetFps, camera.radius, camera.radius, Animation.ANIMATIONLOOPMODE_RELATIVE, easingFunction));
 			
-			Animation.CreateAndStartAnimation('cameraMove3', camera, 'alpha', targetFps, animationDurationSeconds * targetFps, camera.alpha, origAlpha, Animation.ANIMATIONLOOPMODE_RELATIVE);
-			Animation.CreateAndStartAnimation('cameraMove4', camera, 'beta', targetFps, animationDurationSeconds * targetFps, camera.beta, origBeta, Animation.ANIMATIONLOOPMODE_RELATIVE);
+			animations.push(Animation.CreateAndStartAnimation('cameraMove3', camera, 'alpha', targetFps, animationDurationSeconds * targetFps, camera.alpha, origAlpha, Animation.ANIMATIONLOOPMODE_RELATIVE));
+			animations.push(Animation.CreateAndStartAnimation('cameraMove4', camera, 'beta', targetFps, animationDurationSeconds * targetFps, camera.beta, origBeta, Animation.ANIMATIONLOOPMODE_RELATIVE));
 			
 			// Set the pivot point of the transform node to the selected point so the galaxy scaling trick looks correct
 			// But only set this if we are not already in galaxy space
