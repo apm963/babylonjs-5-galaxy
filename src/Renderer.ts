@@ -163,7 +163,7 @@ export class Renderer {
 	initScene(engine: Engine, scene: Scene) {
 		
 		// Create default camera
-		const camera = new ArcRotateCamera('camera', -Math.PI / 2, Math.PI / 2, 25, Vector3.Zero(), scene);
+		const camera = new ArcRotateCamera('camera', -Math.PI / 2, Math.PI / 2, 5, new Vector3(0, 100, 0), scene);
 		this.defaultCamera = camera;
 		// Bind mouse events on the canvas to be associated with this camera
 		camera.attachControl(engine._workingCanvas, true);
@@ -1192,7 +1192,7 @@ export class Renderer {
 			}
 		};
 		
-		scene.onPointerUp = (e, pickingInfo) => {
+		scene.onPointerUp = async (e, pickingInfo) => {
 			pointerDown = false;
 			
 			if (!pickingInfo) {
@@ -1227,10 +1227,17 @@ export class Renderer {
 				console.log(mesh);
 			}
 			
+			const easingFunction = new QuinticEase();
+			easingFunction.setEasingMode(EasingFunction.EASINGMODE_EASEOUT);
+			
+			const animationRatio = scene.getAnimationRatio();
+			const targetFps = 60 * animationRatio;
+			
 			// Only allow jumping if we are not in galaxy scaling mode
 			if (!solarSystemTransformNode.scaling.equalsWithEpsilon(Vector3.One(), 0.01)) {
-				console.log('Not changing current focused mesh because we are in galaxy scaling mode');
-				return;
+				await new Promise((resolve) =>
+					Animation.CreateAndStartAnimation('cameraZoomToLocalSystem', camera, 'radius', targetFps, 0.5 * targetFps, camera.radius, 95, Animation.ANIMATIONLOOPMODE_RELATIVE, easingFunction, () => resolve(true))
+				);
 			}
 			
 			const correspondingSolarBody = this.solarBodies.filter(solarBody => solarBody.mesh === mesh)[0];
@@ -1246,11 +1253,6 @@ export class Renderer {
 			
 			const origAlpha = camera.alpha;
 			const origBeta = camera.beta;
-			
-			const animationRatio = scene.getAnimationRatio();
-			const targetFps = 60 * animationRatio;
-			const easingFunction = new QuinticEase();
-			easingFunction.setEasingMode(EasingFunction.EASINGMODE_EASEOUT);
 			
 			animations.push(Animation.CreateAndStartAnimation('cameraMove1', camera, 'target', targetFps, animationDurationSeconds * targetFps, camera.target.clone(), point.clone(), Animation.ANIMATIONLOOPMODE_RELATIVE, easingFunction));
 			animations.push(Animation.CreateAndStartAnimation('cameraMove2', camera, 'radius', targetFps, animationDurationSeconds * targetFps, camera.radius, camera.radius, Animation.ANIMATIONLOOPMODE_RELATIVE, easingFunction));
